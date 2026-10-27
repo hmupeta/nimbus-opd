@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-set -o errexit
+set -euo pipefail
+
+echo "→ Upgrading pip..."
+pip install --quiet --upgrade pip
 
 echo "→ Installing dependencies..."
 pip install -r requirements.txt
 
-echo "→ Collecting static files..."
-python manage.py collectstatic --no-input --clear
+echo "→ Verifying Django installation..."
+python -c "import django; print('Django', django.get_version())"
 
-echo "→ Running migrations..."
-python manage.py migrate --noinput
+echo "→ Collecting static files..."
+python manage.py collectstatic --no-input
 
 echo "→ Build complete."

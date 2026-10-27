@@ -1,0 +1,14 @@
+# Normalize line endings on commit / checkout
+* text=auto
+
+# Force LF for scripts and configs (Render runs on Linux)
+*.sh         text eol=lf
+*.bash       text eol=lf
+Dockerfile   text eol=lf
+*.py         text eol=lf
+*.yml        text eol=lf
+*.yaml       text eol=lf
+*.txt        text eol=lf
+*.toml       text eol=lf
+*.json       text eol=lf
+*.md         text eol=lf
