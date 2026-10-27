@@ -83,7 +83,7 @@ export default function Dashboard() {
                 <PieChart>
                   <Pie data={analytics.data.category_breakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
                     {analytics.data.category_breakdown.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={entry.name || `cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
