@@ -150,10 +150,31 @@ class Command(BaseCommand):
                     _reset_tenant(t)
             self.stdout.write("   reset complete")
 
+        self._ensure_superadmin()
         self._seed_demo()
         self._seed_clinic_b()
 
         self.stdout.write(self.style.SUCCESS("\nSeed complete."))
+
+    def _ensure_superadmin(self):
+        """Ensure a Platform Admin exists with NO tenant (cannot see clinical data)."""
+        from django.contrib.auth.hashers import make_password
+        if User.objects.filter(email="superadmin@nimbus.local").exists():
+            self.stdout.write("   [superadmin] already exists, skipping")
+            return
+        User.objects.create(
+            email="superadmin@nimbus.local",
+            password=make_password("demo"),
+            first_name="Super",
+            last_name="Admin",
+            role="admin",
+            is_staff=True,
+            is_superuser=True,
+            is_platform_admin=True,
+            tenant=None,  # Critical: no tenant → RLS blocks all clinical data
+        )
+        self.stdout.write(self.style.SUCCESS(
+            "   [superadmin] created: superadmin@nimbus.local / demo"))
 
     # ── tenant A ───────────────────────────────────────────────────────
     def _seed_demo(self):
