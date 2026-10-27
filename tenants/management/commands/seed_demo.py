@@ -156,27 +156,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("\nSeed complete."))
 
-    def _ensure_superadmin(self):
-        """Ensure a Platform Admin exists with NO tenant (cannot see clinical data)."""
-        from django.contrib.auth.hashers import make_password
-        if User.objects.filter(email="superadmin@nimbus.local").exists():
-            self.stdout.write("   [superadmin] already exists, skipping")
-            return
-        User.objects.create(
-            email="superadmin@nimbus.local",
-            password=make_password("demo"),
-            first_name="Super",
-            last_name="Admin",
-            role="admin",
-            is_staff=True,
-            is_superuser=True,
-            is_platform_admin=True,
-            tenant=None,  # Critical: no tenant → RLS blocks all clinical data
-        )
-        self.stdout.write(self.style.SUCCESS(
-            "   [superadmin] created: superadmin@nimbus.local / demo"))
 
-    # ── tenant A ───────────────────────────────────────────────────────
     def _seed_demo(self):
         tenant, _ = Tenant.objects.get_or_create(
             code="demo", defaults={"name": "Demo Clinic"})
@@ -586,3 +566,29 @@ class Command(BaseCommand):
             )
 
         self.stdout.write(self.style.SUCCESS("   [clinic-b] seeded"))
+
+    def _ensure_superadmin(self):
+        """Force-create or update the Platform Admin with NO tenant."""
+        from django.contrib.auth.hashers import make_password
+        from tenants.models import User
+        
+        user, created = User.objects.update_or_create(
+            email="superadmin@nimbus.local",
+            defaults={
+                "password": make_password("demo"),
+                "first_name": "Super",
+                "last_name": "Admin",
+                "role": "admin",
+                "is_staff": True,
+                "is_superuser": True,
+                "is_platform_admin": True,
+                "tenant": None,
+            }
+        )
+        if created:
+            self.stdout.write(self.style.SUCCESS(
+                "   [superadmin] CREATED: superadmin@nimbus.local / demo"))
+        else:
+            self.stdout.write(self.style.SUCCESS(
+                "   [superadmin] UPDATED password to 'demo'"))
+
