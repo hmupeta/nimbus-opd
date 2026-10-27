@@ -1,8 +1,19 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework import serializers
 
 
 class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Block login if the tenant is not active (pending approval/payment)
+        if self.user.tenant and not self.user.tenant.is_active:
+            raise serializers.ValidationError(
+                {"detail": "Your clinic is pending approval or payment. Please contact the Platform Administrator."}
+            )
+        return data
+
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
