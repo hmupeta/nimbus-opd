@@ -35,11 +35,10 @@ services:
       - key: PYTHON_VERSION
         value: "3.13.0"
 
-  # 3. React Frontend (Corrected: type web + runtime static)
+  # 3. React Frontend (No plan field!)
   - type: web
     name: nimbus-frontend
     runtime: static
-    plan: free
     buildCommand: "npm install && npm run build"
     staticPublishPath: dist
     rootDir: frontend
