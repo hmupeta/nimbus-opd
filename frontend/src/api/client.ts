@@ -1,9 +1,16 @@
 import axios from "axios";
 
+// Use the production URL from Render, fallback to localhost for dev
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+// Set global default for raw axios calls
+axios.defaults.baseURL = API_BASE;
+
 const TOKEN_KEY = "opd.access";
 const REFRESH_KEY = "opd.refresh";
 
-export const api = axios.create({ baseURL: "/api" });
+// Create an instance for the app-specific calls
+export const api = axios.create({ baseURL: `${API_BASE}/api` });
 
 export function getAccess() { return localStorage.getItem(TOKEN_KEY); }
 export function getRefresh() { return localStorage.getItem(REFRESH_KEY); }
@@ -39,6 +46,7 @@ api.interceptors.response.use(
       }
       original._retry = true;
       try {
+        // Use global axios here so it inherits the baseURL
         const { data } = await axios.post("/api/auth/refresh/", { refresh });
         setTokens(data.access, data.refresh ?? refresh);
         original.headers.Authorization = `Bearer ${data.access}`;
