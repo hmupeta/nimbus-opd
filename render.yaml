@@ -17,7 +17,10 @@ services:
     env: python
     plan: free
     buildCommand: "bash build.sh"
-    startCommand: "gunicorn config.wsgi:application"
+    # Explicitly bind to the port Render provides
+    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
+    # Run migrations in a separate, dedicated step before the app starts
+    preDeployCommand: "python manage.py migrate --noinput"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -35,13 +38,15 @@ services:
       - key: PYTHON_VERSION
         value: "3.13.0"
 
-  # 3. React Frontend (No plan field!)
+  # 3. React Frontend
   - type: web
     name: nimbus-frontend
     runtime: static
+    plan: free
     buildCommand: "npm install && npm run build"
+    # The path is relative to the rootDir (frontend)
     staticPublishPath: dist
     rootDir: frontend
     envVars:
       - key: VITE_API_BASE
-        value: "https://nimbus-backend.onrender.com"
+        value: "https://nimbus-backend.onrender.com" # Update after backend is live
