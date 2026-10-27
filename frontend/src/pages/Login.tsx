@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { login } from "../api/auth";
 
 export default function Login() {
@@ -16,7 +16,6 @@ export default function Login() {
       await login(email, password);
       nav("/dashboard", { replace: true });
     } catch (err: any) {
-      // Extract exact error from DRF (could be in detail or non_field_errors)
       const data = err?.response?.data;
       let msg = "Login failed. Check credentials.";
       
@@ -33,12 +32,23 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4">
+      
+      {/* Back to Home Link */}
+      <div className="w-full max-w-sm mb-6">
+        <Link to="/" className="text-sm text-slate-500 hover:text-sky-600 flex items-center gap-1 font-medium transition">
+          <span>←</span> Back to Home
+        </Link>
+      </div>
+
       <form
         onSubmit={onSubmit}
         className="bg-white p-8 rounded-xl shadow-lg border border-slate-200 w-full max-w-sm space-y-4"
       >
-        <h1 className="text-2xl font-bold text-slate-800 text-center mb-2">Sign in</h1>
+        <div className="text-center mb-6">
+          <div className="w-10 h-10 bg-sky-600 rounded-lg flex items-center justify-center text-white font-bold text-xl mx-auto mb-3">N</div>
+          <h1 className="text-2xl font-bold text-slate-800">Sign in</h1>
+        </div>
         
         {error && (
           <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
