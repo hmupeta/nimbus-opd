@@ -5,7 +5,7 @@ databases:
     plan: free
 
 services:
-  # 1. Redis for Celery (optional if you remove the worker, but harmless to keep)
+  # 1. Redis for Celery
   - type: redis
     name: nimbus-redis
     plan: free
@@ -35,9 +35,10 @@ services:
       - key: PYTHON_VERSION
         value: "3.13.0"
 
-  # 3. React Frontend (Note the change to 'type: static')
-  - type: static
+  # 3. React Frontend (Corrected: type web + runtime static)
+  - type: web
     name: nimbus-frontend
+    runtime: static
     plan: free
     buildCommand: "npm install && npm run build"
     staticPublishPath: dist
