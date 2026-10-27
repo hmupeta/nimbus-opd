@@ -1,0 +1,69 @@
+databases:
+  - name: nimbus-db
+    databaseName: nimbus
+    user: nimbus_admin
+    plan: free
+
+services:
+  - type: redis
+    name: nimbus-redis
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: nimbus-backend
+    env: python
+    plan: free
+
+    buildCommand: "bash build.sh"
+    startCommand: "gunicorn config.wsgi:application"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nimbus-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nimbus-redis
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "0"
+      - key: PYTHON_VERSION
+        value: "3.13.0"
+
+  - type: worker
+    name: nimbus-worker
+    env: python
+    plan: free
+
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A config worker --loglevel=info --pool=solo"
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: nimbus-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: nimbus-redis
+          property: connectionString
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          type: web
+          name: nimbus-backend
+          envVarKey: DJANGO_SECRET_KEY
+
+  - type: web
+    name: nimbus-frontend
+    env: static
+    plan: free
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        value: "https://nimbus-backend.onrender.com"
