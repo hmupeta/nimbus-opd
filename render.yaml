@@ -5,16 +5,17 @@ databases:
     plan: free
 
 services:
+  # 1. Redis for Celery (optional if you remove the worker, but harmless to keep)
   - type: redis
     name: nimbus-redis
     plan: free
     ipAllowList: []
 
+  # 2. Django Backend
   - type: web
     name: nimbus-backend
     env: python
     plan: free
-
     buildCommand: "bash build.sh"
     startCommand: "gunicorn config.wsgi:application"
     envVars:
@@ -34,36 +35,13 @@ services:
       - key: PYTHON_VERSION
         value: "3.13.0"
 
-  - type: worker
-    name: nimbus-worker
-    env: python
-    plan: free
-
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A config worker --loglevel=info --pool=solo"
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: nimbus-db
-          property: connectionString
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: nimbus-redis
-          property: connectionString
-      - key: DJANGO_SECRET_KEY
-        fromService:
-          type: web
-          name: nimbus-backend
-          envVarKey: DJANGO_SECRET_KEY
-
-  - type: web
+  # 3. React Frontend (Note the change to 'type: static')
+  - type: static
     name: nimbus-frontend
-    env: static
     plan: free
-    rootDir: frontend
     buildCommand: "npm install && npm run build"
     staticPublishPath: dist
+    rootDir: frontend
     envVars:
       - key: VITE_API_BASE
         value: "https://nimbus-backend.onrender.com"
