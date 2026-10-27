@@ -5,7 +5,7 @@ databases:
     plan: free
 
 services:
-  # 1. Redis for Celery
+  # 1. Redis (Keep for future use or if you add a worker later)
   - type: redis
     name: nimbus-redis
     plan: free
@@ -17,10 +17,8 @@ services:
     env: python
     plan: free
     buildCommand: "bash build.sh"
-    # Explicitly bind to the port Render provides
-    startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
-    # Run migrations in a separate, dedicated step before the app starts
-    preDeployCommand: "python manage.py migrate --noinput"
+    # Run migrations, then start the server
+    startCommand: "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -42,11 +40,9 @@ services:
   - type: web
     name: nimbus-frontend
     runtime: static
-    plan: free
     buildCommand: "npm install && npm run build"
-    # The path is relative to the rootDir (frontend)
     staticPublishPath: dist
     rootDir: frontend
     envVars:
       - key: VITE_API_BASE
-        value: "https://nimbus-backend.onrender.com" # Update after backend is live
+        value: "https://nimbus-backend.onrender.com"
