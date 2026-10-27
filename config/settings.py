@@ -67,8 +67,6 @@ TEMPLATES = [{
 WSGI_APPLICATION = "config.wsgi.application"
 
 if "DATABASE_URL" in os.environ:
-    DATABASES = {"default": dj_database_url.config(conn_max_age=600, ssl_require=True)}
-else:
     DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -81,6 +79,16 @@ else:
         "ATOMIC_REQUESTS": True,
     }
 }
+
+# On Render, DATABASE_URL is the only DB config we need.
+# This OVERRIDES the fallback above when the env var is present.
+_database_url = os.environ.get("DATABASE_URL")
+if _database_url:
+    DATABASES["default"] = dj_database_url.parse(
+        _database_url,
+        conn_max_age=600,
+        ssl_require=True,
+    )
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

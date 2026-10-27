@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -o errexit
 
-echo "Installing dependencies..."
+echo "→ Installing dependencies..."
 pip install -r requirements.txt
 
-echo "Collecting static files..."
-python manage.py collectstatic --no-input
+echo "→ Collecting static files..."
+python manage.py collectstatic --no-input --clear
 
-echo "Running database migrations..."
-python manage.py migrate
+echo "→ Running migrations..."
+python manage.py migrate --noinput
+
+echo "→ Build complete."
