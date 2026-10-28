@@ -15,6 +15,7 @@ import BillingDashboard from "./pages/BillingDashboard";
 import Appointments from "./pages/Appointments";
 import StockDashboard from "./pages/StockDashboard";
 import AuditTrail from "./pages/AuditTrail";
+import Staff from "./pages/Staff";
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/appointments" element={<Appointments />} />
           <Route path="/stock" element={<StockDashboard />} />
           <Route path="/audit" element={<AuditTrail />} />
+          <Route path="/staff" element={<Staff />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

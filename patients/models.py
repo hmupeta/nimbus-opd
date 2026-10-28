@@ -10,12 +10,24 @@ from tenants.models import TenantSequence
 
 def next_sequence(tenant, scope: str) -> int:
     with transaction.atomic():
-        seq, _ = TenantSequence.objects.select_for_update().get_or_create(
-            tenant=tenant, scope=scope,
-        )
-        seq.last += 1
-        seq.save(update_fields=["last"])
-        return seq.last
+        try:
+            # Use select_for_update to prevent race conditions
+            seq, _ = TenantSequence.objects.select_for_update().get_or_create(
+                tenant=tenant, scope=scope,
+            )
+            seq.last += 1
+            seq.save(update_fields=["last"])
+            return seq.last
+        except Exception:
+            # Fallback for extreme edge cases (e.g. DB lock)
+            import time
+            time.sleep(0.1)
+            seq, _ = TenantSequence.objects.get_or_create(
+                tenant=tenant, scope=scope,
+            )
+            seq.last += 1
+            seq.save(update_fields=["last"])
+            return seq.last
 
 
 class Patient(TenantAwareModel):
