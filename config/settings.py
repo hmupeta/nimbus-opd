@@ -113,6 +113,9 @@ if os.environ.get("DATABASE_URL"):
         conn_max_age=600,
         ssl_require=True,
     )
+    # CRITICAL: dj_database_url drops custom settings, so we must re-apply this.
+    # Without ATOMIC_REQUESTS, the Tenant RLS context is immediately lost.
+    DATABASES["default"]["ATOMIC_REQUESTS"] = True
 
 
 # ─── Auth ──────────────────────────────────────────────────────────────
