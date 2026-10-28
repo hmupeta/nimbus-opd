@@ -132,7 +132,7 @@ class UserViewSet(TenantScopedViewSet):
         t = get_current_tenant() or self.request.user.tenant
         if t is None:
             return User.objects.none()
-        qs = User.objects.filter(tenant=t)
+        qs = User.objects.filter(tenant=t).order_by("-id")
         role = self.request.query_params.get("role")
         if role:
             qs = qs.filter(role=role)
@@ -150,7 +150,7 @@ class PatientViewSet(TenantScopedViewSet):
     permission_classes = [require_roles("admin", "receptionist", "doctor", "nurse", "pharmacist", "lab")]
 
     def get_queryset(self):
-        qs = Patient.objects.all()
+        qs = Patient.objects.all().order_by("-id")
         q = self.request.query_params.get("q")
         if q:
             from django.db.models import Q

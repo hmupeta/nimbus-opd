@@ -20,6 +20,7 @@ const PROVINCES = [
 export default function Patients() {
   const [q, setQ] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [formDob, setFormDob] = useState<string>("");
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -54,7 +55,17 @@ export default function Patients() {
       qc.invalidateQueries({ queryKey: ["patients"] });
       setShowForm(false);
       setFormDob("");
+      setFormError(null);
     },
+    onError: (err: any) => {
+      const data = err.response?.data;
+      if (typeof data === "object") {
+        const messages = Object.entries(data).map(([k, v]) => `${k}: ${v}`).join("\n");
+        setFormError(messages);
+      } else {
+        setFormError(data?.detail || "Failed to create patient.");
+      }
+    }
   });
 
   function onCreate(e: FormEvent<HTMLFormElement>) {
@@ -98,6 +109,11 @@ export default function Patients() {
 
       {showForm && (
         <form onSubmit={onCreate} className="bg-white border rounded-lg p-6 space-y-6 shadow-sm">
+          {formError && (
+            <div className="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 text-sm whitespace-pre-wrap font-mono">
+              {formError}
+            </div>
+          )}
           <div className="flex items-center justify-between border-b pb-4">
             <h2 className="text-lg font-medium">Register New Patient</h2>
             <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600">✕</button>
