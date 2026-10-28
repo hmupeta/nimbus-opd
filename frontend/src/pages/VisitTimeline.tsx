@@ -167,6 +167,18 @@ export default function VisitTimeline() {
         </div>
       )}
 
+      {t.status === "triaged" && (isNurse || isAdmin) && (
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-lg flex items-center justify-between shadow-sm">
+          <div>
+            <p className="font-semibold">Triage Complete</p>
+            <p className="text-sm">Vitals recorded successfully. Please direct the patient to the Doctor's room.</p>
+          </div>
+          <span className="bg-emerald-600 text-white px-4 py-2 rounded shadow text-sm font-medium">
+            In Doctor's Queue
+          </span>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-4">
         <Card title="Patient">
           <p className="font-medium">{t.patient.full_name}</p>
