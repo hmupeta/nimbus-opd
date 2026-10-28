@@ -208,7 +208,7 @@ class VisitViewSet(TenantScopedViewSet):
         visit.save(update_fields=["status"])
         return Response(ser.data)
 
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], permission_classes=[require_roles("admin", "doctor")])
     def close(self, request, pk=None):
         visit = self.get_object()
         pending = visit.orders.filter(status__in=[

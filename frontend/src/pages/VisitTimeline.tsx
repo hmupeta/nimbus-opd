@@ -143,7 +143,7 @@ export default function VisitTimeline() {
           <button onClick={() => window.print()} className="rounded bg-sky-100 text-sky-700 text-sm px-3 py-1.5 hover:bg-sky-200 font-medium">
             Print Prescription
           </button>
-          {t.status !== "closed" && (
+          {t.status !== "closed" && (isDoctor || isAdmin) && (
             <button onClick={() => closeVisit.mutate()}
               disabled={closeVisit.isPending}
               className="rounded bg-slate-700 text-white text-sm px-3 py-1.5 hover:bg-slate-800 disabled:opacity-50">
@@ -205,12 +205,12 @@ export default function VisitTimeline() {
           ) : showVitalsForm ? (
             <form onSubmit={onVitalsSubmit} className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs"><span className="text-slate-500">Temp (°C)</span><input type="number" step="0.1" name="temperature_c" className="w-full border rounded px-2 py-1 mt-1" /></label>
-                <label className="text-xs"><span className="text-slate-500">SpO₂ (%)</span><input type="number" name="spo2" className="w-full border rounded px-2 py-1 mt-1" /></label>
-                <label className="text-xs"><span className="text-slate-500">Systolic</span><input type="number" name="systolic" className="w-full border rounded px-2 py-1 mt-1" /></label>
-                <label className="text-xs"><span className="text-slate-500">Diastolic</span><input type="number" name="diastolic" className="w-full border rounded px-2 py-1 mt-1" /></label>
-                <label className="text-xs"><span className="text-slate-500">Pulse</span><input type="number" name="pulse" className="w-full border rounded px-2 py-1 mt-1" /></label>
-                <label className="text-xs"><span className="text-slate-500">Weight (kg)</span><input type="number" step="0.1" name="weight_kg" className="w-full border rounded px-2 py-1 mt-1" /></label>
+                <label className="text-xs"><span className="text-slate-500">Temp (°C)</span><input type="number" step="0.1" min="30" max="45" name="temperature_c" className="w-full border rounded px-2 py-1 mt-1" /></label>
+                <label className="text-xs"><span className="text-slate-500">SpO₂ (%)</span><input type="number" min="50" max="100" name="spo2" className="w-full border rounded px-2 py-1 mt-1" /></label>
+                <label className="text-xs"><span className="text-slate-500">Systolic</span><input type="number" min="50" max="250" name="systolic" className="w-full border rounded px-2 py-1 mt-1" /></label>
+                <label className="text-xs"><span className="text-slate-500">Diastolic</span><input type="number" min="30" max="150" name="diastolic" className="w-full border rounded px-2 py-1 mt-1" /></label>
+                <label className="text-xs"><span className="text-slate-500">Pulse</span><input type="number" min="30" max="220" name="pulse" className="w-full border rounded px-2 py-1 mt-1" /></label>
+                <label className="text-xs"><span className="text-slate-500">Weight (kg)</span><input type="number" step="0.1" min="1" max="300" name="weight_kg" className="w-full border rounded px-2 py-1 mt-1" /></label>
               </div>
               <div className="flex justify-end gap-2 mt-2">
                 <button type="button" onClick={() => setShowVitalsForm(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
