@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import { api } from "../api/client";
+import { currentUser } from "../api/auth";
 import type { Paginated, Patient, Visit } from "../api/types";
 
 const PROVINCES = [
@@ -18,6 +19,8 @@ const PROVINCES = [
 ];
 
 export default function Patients() {
+  const user = currentUser();
+  const canStartVisit = user?.role === "receptionist" || user?.role === "admin";
   const [q, setQ] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -313,13 +316,15 @@ export default function Patients() {
                     {p.national_id || p.passport_number || "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => startVisit.mutate(p.id)}
-                      disabled={startVisit.isPending}
-                      className="rounded bg-emerald-600 text-white text-xs px-3 py-1.5 hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Start visit
-                    </button>
+                    {canStartVisit && (
+                      <button
+                        onClick={() => startVisit.mutate(p.id)}
+                        disabled={startVisit.isPending}
+                        className="rounded bg-emerald-600 text-white text-xs px-3 py-1.5 hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Start visit
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

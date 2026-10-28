@@ -180,6 +180,15 @@ class VisitViewSet(TenantScopedViewSet):
     permission_classes = [require_roles(
         "admin", "receptionist", "doctor", "nurse")]
 
+    def create(self, request, *args, **kwargs):
+        if request.user.role not in ["admin", "receptionist"]:
+            return Response(
+                {"detail": "Only a Receptionist or Admin can start a new visit."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().create(request, *args, **kwargs)
+
+
     def get_queryset(self):
         qs = Visit.objects.all().order_by("-id")
         st = self.request.query_params.get("status")
