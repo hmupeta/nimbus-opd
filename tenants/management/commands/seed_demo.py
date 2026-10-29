@@ -75,6 +75,20 @@ def _reset_tenant(tenant):
     ]
     with suspend_audit():
         with db_tenant_context(tenant):
+            # Seed Default Chart of Accounts
+            accounts = [
+                ("1000", "Cash & Bank", "asset"),
+                ("1100", "Accounts Receivable", "asset"),
+                ("4000", "Consultation Revenue", "revenue"),
+                ("4100", "Pharmacy Revenue", "revenue"),
+                ("4200", "Lab Revenue", "revenue"),
+                ("4300", "Radiology Revenue", "revenue"),
+            ]
+            for code, name, type in accounts:
+                # Use all_objects to bypass TenantManager and avoid duplicate inserts
+                ChartOfAccount.all_objects.get_or_create(
+                    tenant=tenant, code=code, defaults={"name": name, "type": type}
+                )
             for model in order_of_deletion:
                 manager = getattr(model, "all_objects", model.objects)
                 manager.filter(tenant=tenant).delete()
@@ -169,20 +183,6 @@ class Command(BaseCommand):
             )
             _seed_momo(tenant)
             _seed_gateways(tenant)
-
-        # Seed Default Chart of Accounts
-        accounts = [
-            ("1000", "Cash & Bank", "asset"),
-            ("1100", "Accounts Receivable", "asset"),
-            ("4000", "Consultation Revenue", "revenue"),
-            ("4100", "Pharmacy Revenue", "revenue"),
-            ("4200", "Lab Revenue", "revenue"),
-            ("4300", "Radiology Revenue", "revenue"),
-        ]
-        for code, name, type in accounts:
-            ChartOfAccount.objects.get_or_create(
-                tenant=tenant, code=code, defaults={"name": name, "type": type}
-            )
 
             users = self._demo_users(tenant)
             if Visit.all_objects.filter(tenant=tenant).exists():
