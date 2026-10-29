@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "pharmacy",
     "audit.apps.AuditConfig",
     "billing",
+    "accounting.apps.AccountingConfig",
     "notifications.apps.NotificationsConfig",
 ]
 

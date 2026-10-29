@@ -29,7 +29,7 @@ from .serializers import (
     ClinicalNoteSerializer, LabOrderSerializer, LabResultSerializer,
     LabTestSerializer, MedicineSerializer, OrderItemSerializer,
     OrderSerializer, PatientSerializer, PharmacyItemSerializer,
-    PharmacyOrderSerializer, RadiologyOrderSerializer, StockMovementSerializer,
+    PharmacyOrderSerializer, RadiologyExamSerializer, RadiologyOrderSerializer, StockMovementSerializer,
     StockSerializer, TenantSerializer, UserSerializer, VisitSerializer,
     VisitTimelineSerializer, VitalsSerializer, VitalDefinitionSerializer,
     VitalValueSerializer,
@@ -239,13 +239,25 @@ class VisitViewSet(TenantScopedViewSet):
     def order_lab(self, request, pk=None):
         visit = self.get_object()
         test_id = request.data.get("test")
-        if not test_id:
-            return Response({"detail": "test is required"}, status=status.HTTP_400_BAD_REQUEST)
+        custom_test_name = request.data.get("custom_test_name")
+
+        if not test_id and not custom_test_name:
+            return Response({"detail": "test or custom_test_name is required"}, status=status.HTTP_400_BAD_REQUEST)
         
         from lab.models import LabTest, LabOrder
-        test = LabTest.objects.filter(id=test_id).first()
-        if not test:
-            return Response({"detail": "Invalid test"}, status=status.HTTP_400_BAD_REQUEST)
+        from decimal import Decimal
+
+        if test_id:
+            test = LabTest.objects.filter(id=test_id).first()
+            if not test:
+                return Response({"detail": "Invalid test"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # Create a custom test on the fly so it exists in the DB for the lab tech
+            test, _ = LabTest.objects.get_or_create(
+                tenant=visit.tenant,
+                name=custom_test_name,
+                defaults={"code": custom_test_name[:10].upper().replace(" ", ""), "base_price": Decimal("0.00")}
+            )
 
         with transaction.atomic():
             order = Order.objects.create(visit=visit, ordered_by=request.user, kind=Order.Kind.LAB, status=Order.Status.PENDING)
@@ -267,9 +279,21 @@ class VisitViewSet(TenantScopedViewSet):
             return Response({"detail": "medicine is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         from pharmacy.models import Medicine, PharmacyOrder, PharmacyItem
-        med = Medicine.objects.filter(id=med_id).first()
-        if not med:
-            return Response({"detail": "Invalid medicine"}, status=status.HTTP_400_BAD_REQUEST)
+        from decimal import Decimal
+        
+        custom_med_name = request.data.get("custom_medicine_name")
+        
+        if med_id:
+            med = Medicine.objects.filter(id=med_id).first()
+            if not med:
+                return Response({"detail": "Invalid medicine"}, status=status.HTTP_400_BAD_REQUEST)
+        elif custom_med_name:
+            med, _ = Medicine.objects.get_or_create(
+                tenant=visit.tenant, name=custom_med_name,
+                defaults={"code": custom_med_name[:10].upper().replace(" ", ""), "base_price": Decimal("0.00")}
+            )
+        else:
+            return Response({"detail": "medicine or custom_medicine_name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             order = Order.objects.create(visit=visit, ordered_by=request.user, kind=Order.Kind.PHARMACY, status=Order.Status.PENDING)
@@ -331,21 +355,41 @@ class VisitViewSet(TenantScopedViewSet):
     @action(detail=True, methods=["post"], permission_classes=[require_roles("admin", "doctor")])
     def order_radiology(self, request, pk=None):
         visit = self.get_object()
-        modality = request.data.get("modality")
-        body_part = request.data.get("body_part")
+        exam_id = request.data.get("exam")
+        custom_modality = request.data.get("custom_modality")
+        custom_body_part = request.data.get("custom_body_part")
         notes = request.data.get("notes", "")
 
-        if not modality or not body_part:
-            return Response({"detail": "modality and body_part are required"}, status=status.HTTP_400_BAD_REQUEST)
+        from radiology.models import RadiologyExam, RadiologyOrder
+        from decimal import Decimal
 
-        from radiology.models import RadiologyOrder
+        if exam_id:
+            exam = RadiologyExam.objects.filter(id=exam_id).first()
+            if not exam:
+                return Response({"detail": "Invalid exam"}, status=status.HTTP_400_BAD_REQUEST)
+            modality = exam.modality
+            body_part = exam.body_part
+            code = exam.code
+            desc = exam.name
+            price = exam.base_price
+        elif custom_modality and custom_body_part:
+            modality = custom_modality
+            body_part = custom_body_part
+            code = f"{modality}-{body_part}"
+            desc = f"{modality} {body_part}"
+            price = Decimal("0.00")
+        else:
+            return Response({"detail": "exam or custom details are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         with transaction.atomic():
             order = Order.objects.create(visit=visit, ordered_by=request.user, kind=Order.Kind.RADIOLOGY, status=Order.Status.PENDING, notes=notes)
-            OrderItem.objects.create(order=order, code=f"{modality}-{body_part}", description=f"{modality} {body_part}", quantity=1)
+            OrderItem.objects.create(order=order, code=code, description=desc, quantity=1)
             RadiologyOrder.objects.create(
                 visit=visit, order=order, modality=modality, body_part=body_part, status=RadiologyOrder.Status.PENDING
             )
+            
+            # Update the price of the auto-generated invoice item later
+            # (Handled in the invoice generation logic based on the OrderItem code)
 
         return Response({"detail": "Radiology ordered", "order_id": order.id}, status=status.HTTP_201_CREATED)
 
@@ -465,6 +509,19 @@ class LabResultViewSet(TenantScopedViewSet):
 
 
 # ── radiology ──────────────────────────────────────────────────────────
+class RadiologyExamViewSet(TenantScopedViewSet):
+    serializer_class = RadiologyExamSerializer
+    permission_classes = [require_roles("admin", "radiology", "doctor", "nurse")]
+
+    def get_queryset(self):
+        # Lazy import — works even if the module-level import is missing
+        from radiology.models import RadiologyExam
+        return RadiologyExam.all_objects.filter(
+            tenant_id=self.request.user.tenant_id
+        ).order_by("-id")
+
+
+
 class RadiologyOrderViewSet(TenantScopedViewSet):
     serializer_class = RadiologyOrderSerializer
     def get_queryset(self):

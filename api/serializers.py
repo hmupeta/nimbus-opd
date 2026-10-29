@@ -6,7 +6,7 @@ from patients.models import Patient
 from pharmacy.models import (
     Medicine, PharmacyItem, PharmacyOrder, Stock, StockMovement,
 )
-from radiology.models import RadiologyOrder
+from radiology.models import RadiologyExam, RadiologyOrder
 from tenants.models import Tenant, TenantSettings, User
 from visits.models import Visit
 from vitals.models import VitalDefinition, Vitals, VitalValue
@@ -222,6 +222,13 @@ class LabOrderSerializer(serializers.ModelSerializer):
 
 
 
+class RadiologyExamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RadiologyExam
+        fields = ["id", "code", "name", "modality", "body_part", "base_price", "is_active"]
+        read_only_fields = ["id"]
+
+
 class RadiologyOrderSerializer(serializers.ModelSerializer):
     visit_no = serializers.CharField(source="visit.visit_no", read_only=True)
     patient_name = serializers.CharField(source="visit.patient.full_name", read_only=True)
@@ -306,3 +313,20 @@ class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
         fields = ["id", "at", "user_email", "action", "model_name", "object_id", "before", "after"]
+
+
+from accounting.models import JournalEntry, JournalEntryLine
+
+class JournalEntryLineSerializer(serializers.ModelSerializer):
+    account_name = serializers.CharField(source="account.name", read_only=True)
+    class Meta:
+        model = JournalEntryLine
+        fields = ["id", "account", "account_name", "debit", "credit"]
+
+class JournalEntrySerializer(serializers.ModelSerializer):
+    lines = JournalEntryLineSerializer(many=True, read_only=True)
+    approved_by_name = serializers.CharField(source="approved_by.full_name", read_only=True, default="")
+    
+    class Meta:
+        model = JournalEntry
+        fields = ["id", "date", "reference", "description", "status", "approved_by_name", "approved_at", "lines"]

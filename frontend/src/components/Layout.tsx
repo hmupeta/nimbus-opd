@@ -47,9 +47,19 @@ export default function Layout() {
               <NavLink to="/billing" className={linkClass}>Billing</NavLink>
             )}
 
+            {isClinicalStaff && (user?.role === "accountant" || user?.role === "finance_manager" || user?.role === "admin") && (
+              <>
+                <NavLink to="/accounting" className={linkClass}>Accounting</NavLink>
+                <NavLink to="/integrations" className={linkClass}>Integrations</NavLink>
+              </>
+            )}
+
             {isClinicalStaff && user?.role === "admin" && (
               <>
                 <NavLink to="/staff" className={linkClass}>Staff</NavLink>
+                <NavLink to="/lab-catalog" className={linkClass}>Lab Catalog</NavLink>
+                <NavLink to="/radiology-catalog" className={linkClass}>Radiology Catalog</NavLink>
+                <NavLink to="/pharmacy-catalog" className={linkClass}>Pharmacy Catalog</NavLink>
                 <NavLink to="/reports" className={linkClass}>MIS Reports</NavLink>
                 <NavLink to="/audit" className={linkClass}>Audit Trail</NavLink>
               </>

@@ -36,3 +36,22 @@ class RadiologyOrder(TenantAwareModel):
     report_url = models.URLField(blank=True)
     image = models.ImageField(upload_to="radiology/", null=True, blank=True)
     reported_at = models.DateTimeField(null=True, blank=True)
+
+
+
+class RadiologyExam(TenantAwareModel):
+    code = models.CharField(max_length=32)
+    name = models.CharField(max_length=128)
+    modality = models.CharField(max_length=8, choices=RadiologyOrder.Modality.choices)
+    body_part = models.CharField(max_length=64)
+    base_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["tenant", "code"], name="uniq_radexam_code"),
+        ]
+        ordering = ["name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"

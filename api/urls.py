@@ -9,6 +9,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .tokens import TenantTokenObtainPairView
 from .appointment_views import AppointmentViewSet
 from .momo_views import MobileMoneyConfigViewSet
+from .accounting_views import JournalEntryViewSet
 from .gateway_views import PaymentGatewayConfigViewSet
 from .billing_views import (
     InsuranceClaimViewSet, InsuranceProviderViewSet,
@@ -18,6 +19,7 @@ from .billing_views import (
 from .platform_views import PlatformStatsView, PlatformTenantViewSet
 from .analytics_views import AnalyticsTrendView, AuditLogViewSet, ZReportView
 from .views import (
+    RadiologyExamViewSet,
     TenantRegistrationView,
     ClinicalNoteViewSet, LabOrderViewSet, LabResultViewSet, LabTestViewSet,
     MedicineViewSet, OrderItemViewSet, OrderViewSet, PatientViewSet,
@@ -44,6 +46,7 @@ router.register("lab-tests", LabTestViewSet, basename="lab-test")
 router.register("lab-orders", LabOrderViewSet, basename="lab-order")
 router.register("lab-results", LabResultViewSet, basename="lab-result")
 router.register("radiology-orders", RadiologyOrderViewSet, basename="rad-order")
+router.register("radiology-exams", RadiologyExamViewSet, basename="rad-exam")
 router.register("medicines", MedicineViewSet, basename="medicine")
 router.register("pharmacy-orders", PharmacyOrderViewSet, basename="pharm-order")
 router.register("pharmacy-items", PharmacyItemViewSet, basename="pharm-item")
@@ -56,6 +59,7 @@ router.register("invoice-items", InvoiceItemViewSet, basename="invoice-item")
 router.register("payments", PaymentViewSet, basename="payment")
 router.register("insurance-claims", InsuranceClaimViewSet, basename="claim")
 router.register("mobile-money-configs", MobileMoneyConfigViewSet, basename="momo")
+router.register("journal-entries", JournalEntryViewSet, basename="journal-entry")
 router.register("payment-gateway-configs", PaymentGatewayConfigViewSet, basename="gateway")
 
 urlpatterns = [

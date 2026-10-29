@@ -17,6 +17,7 @@ from clinical.models import ClinicalNote, Order, OrderItem
 from common.context import db_tenant_context, suspend_audit
 from lab.models import LabOrder, LabResult, LabTest
 from patients.models import Patient
+from accounting.models import ChartOfAccount
 from notifications.models import SmsLog
 from pharmacy.models import (
     Medicine, PharmacyItem, PharmacyOrder, Stock, StockMovement,
@@ -168,6 +169,21 @@ class Command(BaseCommand):
             )
             _seed_momo(tenant)
             _seed_gateways(tenant)
+
+        # Seed Default Chart of Accounts
+        accounts = [
+            ("1000", "Cash & Bank", "asset"),
+            ("1100", "Accounts Receivable", "asset"),
+            ("4000", "Consultation Revenue", "revenue"),
+            ("4100", "Pharmacy Revenue", "revenue"),
+            ("4200", "Lab Revenue", "revenue"),
+            ("4300", "Radiology Revenue", "revenue"),
+        ]
+        for code, name, type in accounts:
+            ChartOfAccount.objects.get_or_create(
+                tenant=tenant, code=code, defaults={"name": name, "type": type}
+            )
+
             users = self._demo_users(tenant)
             if Visit.all_objects.filter(tenant=tenant).exists():
                 self.stdout.write("   [demo] already has visits, skipping")
@@ -193,6 +209,10 @@ class Command(BaseCommand):
                                     "Rita", "Radiologist", staff=True),
             "pharmacy":  _make_user(tenant, "pharmacy@demo.local", "pharmacist",
                                     "Peter", "Pharmacist", staff=True),
+            "accountant": _make_user(tenant, "accountant@demo.local", "accountant",
+                                    "Alice", "Accountant", staff=True),
+            "finance":    _make_user(tenant, "finance@demo.local", "finance_manager",
+                                    "Frank", "Manager", staff=True),
         }
 
     def _demo_catalog(self, tenant):

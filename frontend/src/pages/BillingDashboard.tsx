@@ -12,6 +12,16 @@ export default function BillingDashboard() {
     queryFn: async () => (await api.get("/analytics/z-report/")).data,
   });
 
+  const momoConfigs = useQuery({
+    queryKey: ["momo-configs-active"],
+    queryFn: async () => (await api.get<Paginated<any>>("/mobile-money-configs/?is_active=true")).data.results,
+  });
+
+  const gatewayConfigs = useQuery({
+    queryKey: ["gateway-configs-active"],
+    queryFn: async () => (await api.get<Paginated<any>>("/payment-gateway-configs/?is_active=true")).data.results,
+  });
+
   const visits = useQuery({
     queryKey: ["billing-visits"],
     queryFn: async () => (await api.get<Paginated<any>>("/visits/?status=closed")).data,
@@ -57,12 +67,26 @@ export default function BillingDashboard() {
     e.preventDefault();
     if (!invoice.data) return;
     const fd = new FormData(e.currentTarget);
-    recordPayment.mutate({
+    const methodVal = String(fd.get("method"));
+    
+    // Parse out the config ID if the method uses one (e.g., "mobile_money:1")
+    const [method, configIdStr] = methodVal.split(":");
+    const configId = configIdStr ? parseInt(configIdStr) : null;
+
+    const payload: any = {
       invoice: invoice.data.id,
       amount: String(fd.get("amount")),
-      method: String(fd.get("method")),
+      method: method,
       reference: String(fd.get("reference") || ""),
-    });
+    };
+
+    if (method === "mobile_money" && configId) {
+      payload.mobile_money_config = configId;
+    } else if ((method === "card" || method === "stripe" || method === "paypal") && configId) {
+      payload.payment_gateway_config = configId;
+    }
+
+    recordPayment.mutate(payload);
   }
 
   return (
@@ -186,8 +210,21 @@ export default function BillingDashboard() {
                       <span className="text-slate-500">Method</span>
                       <select name="method" className="w-full mt-1 border rounded px-2 py-1.5">
                         <option value="cash">Cash</option>
-                        <option value="mobile_money">Mobile Money</option>
                         <option value="insurance">Insurance</option>
+                        
+                        {/* Dynamic Mobile Money Options */}
+                        {momoConfigs.data?.map((c: any) => (
+                          <option key={`momo-${c.id}`} value={`mobile_money:${c.id}`}>
+                            {c.provider.replace("_", " ")} {c.display_name ? `(${c.display_name})` : ""}
+                          </option>
+                        ))}
+                        
+                        {/* Dynamic Gateway Options */}
+                        {gatewayConfigs.data?.map((c: any) => (
+                          <option key={`gw-${c.id}`} value={`card:${c.id}`}>
+                            {c.provider.charAt(0).toUpperCase() + c.provider.slice(1)} (Card)
+                          </option>
+                        ))}
                       </select>
                     </label>
                   </div>

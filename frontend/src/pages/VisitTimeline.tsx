@@ -13,7 +13,10 @@ export default function VisitTimeline() {
   const [showVitalsForm, setShowVitalsForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [showLabForm, setShowLabForm] = useState(false);
+  const [customTest, setCustomTest] = useState(false);
   const [showRadForm, setShowRadForm] = useState(false);
+  const [customRad, setCustomRad] = useState(false);
+  const [customMed, setCustomMed] = useState(false);
   const [showMedForm, setShowMedForm] = useState(false);
 
   const isNurse = user?.role === "nurse";
@@ -33,6 +36,11 @@ export default function VisitTimeline() {
   const labs = useQuery({
     queryKey: ["lab-tests"],
     queryFn: async () => (await api.get<Paginated<any>>("/lab-tests/")).data.results,
+  });
+
+  const radExams = useQuery({
+    queryKey: ["radiology-exams"],
+    queryFn: async () => (await api.get<Paginated<any>>("/radiology-exams/")).data.results,
   });
 
   const meds = useQuery({
@@ -73,12 +81,13 @@ export default function VisitTimeline() {
   });
 
   const orderLab = useMutation({
-    mutationFn: async (testId: number) => {
-      await api.post(`/visits/${id}/order_lab/`, { test: testId });
+    mutationFn: async (payload: any) => {
+      await api.post(`/visits/${id}/order_lab/`, payload);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["visit", id, "timeline"] });
       setShowLabForm(false);
+      setCustomTest(false);
     },
   });
 
@@ -259,43 +268,93 @@ export default function VisitTimeline() {
               )}
 
               {showLabForm && (
-                <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); orderLab.mutate(Number(fd.get("test"))); }} className="space-y-2 bg-indigo-50 p-2 rounded border border-indigo-100">
-                  <select name="test" required className="w-full border rounded px-2 py-1 text-xs">
+                <form onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  const fd = new FormData(e.currentTarget); 
+                  const testVal = fd.get("test");
+                  if (testVal === "custom") {
+                    orderLab.mutate({ custom_test_name: fd.get("custom_test_name") });
+                  } else {
+                    orderLab.mutate({ test: Number(testVal) });
+                  }
+                }} className="space-y-2 bg-indigo-50 p-2 rounded border border-indigo-100">
+                  <select name="test" required onChange={(e) => setCustomTest(e.target.value === "custom")} className="w-full border rounded px-2 py-1 text-xs">
                     <option value="">Select Lab Test...</option>
                     {labs.data?.map((l: any) => <option key={l.id} value={l.id}>{l.name} ({l.code})</option>)}
+                    <option value="custom">+ Custom / Unlisted Test</option>
                   </select>
+                  
+                  {customTest && (
+                    <input name="custom_test_name" required placeholder="Enter test name (e.g. Malaria RDT)" className="w-full border rounded px-2 py-1 text-xs" />
+                  )}
+                  
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowLabForm(false)} className="text-[10px] text-slate-500">Cancel</button>
+                    <button type="button" onClick={() => { setShowLabForm(false); setCustomTest(false); }} className="text-[10px] text-slate-500">Cancel</button>
+                    <button type="submit" disabled={orderLab.isPending} className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded">Order</button>
+                  </div>
+                </form>
+              )}
+                  <div className="flex justify-end gap-2">
+                    <button type="button" onClick={() => { setShowLabForm(false); setCustomTest(false); }} className="text-[10px] text-slate-500">Cancel</button>
                     <button type="submit" disabled={orderLab.isPending} className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded">Order</button>
                   </div>
                 </form>
               )}
 
               {showRadForm && (
-                <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); orderRadiology.mutate({ modality: fd.get("modality"), body_part: fd.get("body_part"), notes: fd.get("notes") }); }} className="space-y-2 bg-orange-50 p-2 rounded border border-orange-100">
-                  <div className="grid grid-cols-2 gap-1">
-                    <select name="modality" required className="w-full border rounded px-2 py-1 text-xs">
-                      <option value="X-ray">X-ray</option>
-                      <option value="CT">CT</option>
-                      <option value="MRI">MRI</option>
-                      <option value="US">Ultrasound</option>
-                    </select>
-                    <input name="body_part" placeholder="Body Part (e.g. Chest)" required className="w-full border rounded px-2 py-1 text-xs" />
-                  </div>
+                <form onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  const fd = new FormData(e.currentTarget); 
+                  const examVal = fd.get("exam");
+                  if (examVal === "custom") {
+                    orderRadiology.mutate({ custom_modality: fd.get("custom_modality"), custom_body_part: fd.get("custom_body_part"), notes: fd.get("notes") });
+                  } else {
+                    orderRadiology.mutate({ exam: Number(examVal), notes: fd.get("notes") });
+                  }
+                }} className="space-y-2 bg-orange-50 p-2 rounded border border-orange-100">
+                  <select name="exam" required onChange={(e) => setCustomRad(e.target.value === "custom")} className="w-full border rounded px-2 py-1 text-xs">
+                    <option value="">Select Exam...</option>
+                    {radExams.data?.map((r: any) => <option key={r.id} value={r.id}>{r.name} ({r.modality} {r.body_part})</option>)}
+                    <option value="custom">+ Custom / Unlisted Exam</option>
+                  </select>
+                  {customRad && (
+                    <div className="grid grid-cols-2 gap-1">
+                      <input name="custom_modality" placeholder="Modality (e.g. X-ray)" required className="w-full border rounded px-2 py-1 text-xs" />
+                      <input name="custom_body_part" placeholder="Body Part" required className="w-full border rounded px-2 py-1 text-xs" />
+                    </div>
+                  )}
                   <input name="notes" placeholder="Clinical notes..." className="w-full border rounded px-2 py-1 text-xs" />
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowRadForm(false)} className="text-[10px] text-slate-500">Cancel</button>
+                    <button type="button" onClick={() => { setShowRadForm(false); setCustomRad(false); }} className="text-[10px] text-slate-500">Cancel</button>
                     <button type="submit" disabled={orderRadiology.isPending} className="text-[10px] bg-orange-600 text-white px-2 py-1 rounded">Order</button>
                   </div>
                 </form>
               )}
 
               {showMedForm && (
-                <form onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); prescribe.mutate({ medicine: Number(fd.get("medicine")), dose: fd.get("dose"), frequency: fd.get("frequency"), duration_days: Number(fd.get("duration_days")), quantity: Number(fd.get("quantity")) }); }} className="space-y-2 bg-emerald-50 p-2 rounded border border-emerald-100">
-                  <select name="medicine" required className="w-full border rounded px-2 py-1 text-xs">
+                <form onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  const fd = new FormData(e.currentTarget); 
+                  const medVal = fd.get("medicine");
+                  const payload: any = {
+                    dose: fd.get("dose"), frequency: fd.get("frequency"),
+                    duration_days: Number(fd.get("duration_days")), quantity: Number(fd.get("quantity"))
+                  };
+                  if (medVal === "custom") {
+                    payload.custom_medicine_name = fd.get("custom_medicine_name");
+                  } else {
+                    payload.medicine = Number(medVal);
+                  }
+                  prescribe.mutate(payload);
+                }} className="space-y-2 bg-emerald-50 p-2 rounded border border-emerald-100">
+                  <select name="medicine" required onChange={(e) => setCustomMed(e.target.value === "custom")} className="w-full border rounded px-2 py-1 text-xs">
                     <option value="">Select Medication...</option>
                     {meds.data?.map((m: any) => <option key={m.id} value={m.id}>{m.name} {m.strength}</option>)}
+                    <option value="custom">+ Custom / Unlisted Medicine</option>
                   </select>
+                  {customMed && (
+                    <input name="custom_medicine_name" placeholder="Enter medicine name" required className="w-full border rounded px-2 py-1 text-xs" />
+                  )}
                   <div className="grid grid-cols-2 gap-1">
                     <input name="dose" defaultValue="1 tab" placeholder="Dose" required className="w-full border rounded px-1 py-1 text-xs" />
                     <input name="frequency" defaultValue="TID" placeholder="Freq" required className="w-full border rounded px-1 py-1 text-xs" />
