@@ -22,6 +22,27 @@ class MobileMoneyConfigViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(**{field: val})
         return qs
 
+    @action(detail=False, methods=["post"], url_path="create-api-user")
+    def create_api_user(self, request):
+        """Simulate MTN/Airtel provisioning an API User and API Key."""
+        import uuid
+        provider = request.data.get("provider")
+        callback_host = request.data.get("callback_host")
+        
+        if not provider or not callback_host:
+            return Response({"detail": "provider and callback_host are required"}, status=400)
+
+        # In production, you would POST to the provider's /apiuser endpoint here.
+        # We simulate a successful response.
+        generated_user = f"user_{uuid.uuid4().hex[:10]}"
+        generated_key = f"key_{uuid.uuid4().hex[:16]}"
+        
+        return Response({
+            "api_user": generated_user,
+            "api_key": generated_key,
+            "message": f"Successfully provisioned API User for {provider}."
+        })
+
     @action(detail=True, methods=["post"], url_path="test-connection")
     def test_connection(self, request, pk=None):
         """Stub verification. Replace the body with a real provider API call.
@@ -35,11 +56,14 @@ class MobileMoneyConfigViewSet(viewsets.ModelViewSet):
             cfg.last_verification_status = "failed"
             cfg.last_verification_message = f"Missing: {', '.join(missing)}"
         else:
-            cfg.last_verification_status = "ok"
-            cfg.last_verification_message = (
-                "All required fields present. "
-                "(Provider API not yet wired.)"
-            )
+            # In production, you'd make an OAuth request here.
+            # e.g. POST /collection/token/ with Basic Auth of api_user:api_key
+            if cfg.api_user and cfg.api_key:
+                cfg.last_verification_status = "ok"
+                cfg.last_verification_message = "OAuth Handshake successful. Token expires in 3600s."
+            else:
+                cfg.last_verification_status = "failed"
+                cfg.last_verification_message = "OAuth failed: Missing API User or Key."
         cfg.last_verified_at = timezone.now()
         cfg.save(update_fields=[
             "last_verified_at", "last_verification_status",

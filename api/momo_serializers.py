@@ -32,7 +32,7 @@ class MobileMoneyConfigSerializer(serializers.ModelSerializer):
         model = MobileMoneyConfig
         fields = [
             "id", "provider", "display_name", "environment",
-            "merchant_code", "short_code",
+            "merchant_code", "short_code", "api_user", "callback_host",
             "api_key", "api_secret", "api_password", "subscription_key",
             "api_key_set", "api_secret_set", "api_password_set",
             "subscription_key_set",
