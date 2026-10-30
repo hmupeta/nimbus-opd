@@ -2,6 +2,8 @@ import logging
 from datetime import date
 from decimal import Decimal
 from django.db.models.signals import post_save
+from tenants.models import Tenant
+from .utils import seed_default_coa
 from django.dispatch import receiver
 from django.db import transaction
 
@@ -103,3 +105,10 @@ def post_payment_to_ledger(sender, instance, created, **kwargs):
             je.verify_balance()
         except Exception as e:
             logger.error(f"Failed to post payment {instance.id} to ledger: {e}")
+
+
+@receiver(post_save, sender=Tenant)
+def create_default_coa_for_new_tenant(sender, instance, created, **kwargs):
+    """When a new clinic registers, automatically create their Chart of Accounts."""
+    if created:
+        seed_default_coa(instance)
