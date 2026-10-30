@@ -9,7 +9,7 @@ live in api/tokens.py.
 from django.db import connection
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from common.context import set_current_tenant
+from common.context import set_current_tenant, set_current_user
 
 
 class TenantJWTAuthentication(JWTAuthentication):
@@ -24,4 +24,5 @@ class TenantJWTAuthentication(JWTAuthentication):
                     [str(user.tenant_id)],
                 )
             set_current_tenant(user.tenant)
+            set_current_user(user)
         return user

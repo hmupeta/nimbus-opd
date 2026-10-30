@@ -308,14 +308,39 @@ from audit.models import AuditLog
 
 class AuditLogSerializer(serializers.ModelSerializer):
     user_email = serializers.CharField(source="user.email", read_only=True, default="System")
-    model_name = serializers.CharField(source="content_type.model", read_only=True)
+    user_name = serializers.SerializerMethodField()
+    record_name = serializers.SerializerMethodField()
+    changes = serializers.SerializerMethodField()
 
     class Meta:
         model = AuditLog
-        fields = ["id", "at", "user_email", "action", "model_name", "object_id", "before", "after"]
+        fields = ["id", "at", "user_email", "user_name", "action", "record_name", "changes"]
 
+    def get_user_name(self, obj):
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.email
+        return "System"
 
-from accounting.models import JournalEntry, JournalEntryLine
+    def get_record_name(self, obj):
+        if obj.target:
+            return str(obj.target)
+        return f"{obj.content_type.model.capitalize()} #{obj.object_id}"
+
+    def get_changes(self, obj):
+        if not obj.before or not obj.after:
+            return {}
+        changes = []
+        for key, new_val in obj.after.items():
+            old_val = obj.before.get(key)
+            if old_val != new_val:
+                # Don't show raw password hashes or empty dicts
+                if key in ["password", "created_at", "updated_at"]: continue
+                changes.append({
+                    "field": key.replace("_", " ").title(),
+                    "old": old_val,
+                    "new": new_val
+                })
+        return changes
 
 class JournalEntryLineSerializer(serializers.ModelSerializer):
     account_name = serializers.CharField(source="account.name", read_only=True)
