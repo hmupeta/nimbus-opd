@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../api/client";
+import { api, getMediaUrl } from "../api/client";
 import { currentUser } from "../api/auth";
 import type { Timeline, Paginated } from "../api/types";
 
@@ -421,7 +421,7 @@ export default function VisitTimeline() {
                       <p><b>Findings:</b> {o.findings}</p>
                       <p><b>Impression:</b> {o.impression}</p>
                       {o.image && (
-                        <a href={o.image} target="_blank" rel="noreferrer" className="inline-block mt-2 text-sky-600 hover:underline font-medium">
+                        <a href={getMediaUrl(o.image)} target="_blank" rel="noreferrer" className="inline-block mt-2 text-sky-600 hover:underline font-medium">
                           View Attached Image ↗
                         </a>
                       )}
@@ -483,7 +483,7 @@ export default function VisitTimeline() {
                       <p>Flag: <b className={l.result.flag !== "normal" ? "text-red-600" : "text-emerald-600"}>{l.result.flag.toUpperCase()}</b></p>
                       {l.result.comment && <p>Comment: {l.result.comment}</p>}
                       {l.result.attachment && (
-                        <a href={l.result.attachment} target="_blank" rel="noreferrer" className="inline-block mt-2 text-sky-600 hover:underline font-medium">
+                        <a href={getMediaUrl(l.result.attachment)} target="_blank" rel="noreferrer" className="inline-block mt-2 text-sky-600 hover:underline font-medium">
                           View Result Attachment ↗
                         </a>
                       )}

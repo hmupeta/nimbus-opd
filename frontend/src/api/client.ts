@@ -60,3 +60,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+
+// Helper to build absolute URLs for uploaded files (images, PDFs)
+export function getMediaUrl(path: string | null | undefined): string {
+  if (!path) return "";
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  return `${API_BASE}${path}`;
+}
