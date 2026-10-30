@@ -1,11 +1,14 @@
 from decimal import Decimal
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
+from common.context import db_tenant_context
 from billing.models import Invoice, InvoiceItem
+from clinical.models import Order
 from .models import Visit
 
 @receiver(pre_save, sender=Visit)
 def track_previous_status(sender, instance, **kwargs):
+    """Store the old status so we can detect the transition to 'closed'."""
     if instance.pk:
         old = Visit.all_objects.get(pk=instance.pk)
         instance._previous_status = old.status
@@ -14,7 +17,7 @@ def track_previous_status(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Visit)
 def auto_generate_invoice(sender, instance, created, **kwargs):
-    # Trigger only when transitioning TO closed
+    """Generate a complete invoice when a visit transitions to 'closed'."""
     if created or instance.status != Visit.Status.CLOSED:
         return
     
@@ -22,7 +25,7 @@ def auto_generate_invoice(sender, instance, created, **kwargs):
     if prev == Visit.Status.CLOSED:
         return
 
-    # Don't duplicate if an invoice already exists
+    # If an invoice already exists (e.g., created manually), don't duplicate it
     if Invoice.all_objects.filter(visit=instance).exists():
         return
 
@@ -34,38 +37,46 @@ def auto_generate_invoice(sender, instance, created, **kwargs):
             currency="ZMW",
         )
         
-        # Add consultation fee (base assumption)
+        # 1. Consultation Fee
         InvoiceItem.objects.create(
-            invoice=inv, category=InvoiceItem.Category.CONSULTATION,
-            description="OPD Consultation", quantity=1, unit_price=Decimal("150.00")
+            invoice=inv,
+            category=InvoiceItem.Category.CONSULTATION,
+            description="OPD Consultation",
+            quantity=1,
+            unit_price=Decimal("150.00")
         )
 
-        # Pull from Orders
+        # 2. Pull from Orders (Lab, Radiology, Pharmacy)
         for order in instance.orders.all():
             for item in order.items.all():
-                if order.kind == "lab":
+                price = Decimal("0.00")
+                
+                if order.kind == Order.Kind.LAB:
                     from lab.models import LabTest
-                    test = LabTest.objects.filter(code=item.code).first()
-                    price = test.base_price if test else Decimal("0.00")
-                    InvoiceItem.objects.create(
-                        invoice=inv, category=InvoiceItem.Category.LAB,
-                        description=item.description, quantity=item.quantity,
-                        unit_price=price, order_item_code=item.code
-                    )
-                elif order.kind == "radiology":
-                    InvoiceItem.objects.create(
-                        invoice=inv, category=InvoiceItem.Category.RADIOLOGY,
-                        description=item.description, quantity=item.quantity,
-                        unit_price=Decimal("120.00"), order_item_code=item.code
-                    )
-                elif order.kind == "pharmacy":
+                    test = LabTest.all_objects.filter(tenant=instance.tenant, code=item.code).first()
+                    if test:
+                        price = test.base_price
+                
+                elif order.kind == Order.Kind.RADIOLOGY:
+                    from radiology.models import RadiologyExam
+                    exam = RadiologyExam.all_objects.filter(tenant=instance.tenant, code=item.code).first()
+                    if exam:
+                        price = exam.base_price
+                
+                elif order.kind == Order.Kind.PHARMACY:
                     from pharmacy.models import Medicine
-                    med = Medicine.objects.filter(code=item.code).first()
-                    price = med.base_price if med else Decimal("0.00")
-                    InvoiceItem.objects.create(
-                        invoice=inv, category=InvoiceItem.Category.PHARMACY,
-                        description=item.description, quantity=item.quantity,
-                        unit_price=price, order_item_code=item.code
-                    )
-                    
+                    med = Medicine.all_objects.filter(tenant=instance.tenant, code=item.code).first()
+                    if med:
+                        price = med.base_price
+
+                # Add to invoice
+                InvoiceItem.objects.create(
+                    invoice=inv,
+                    category=order.kind,
+                    description=item.description,
+                    quantity=item.quantity,
+                    unit_price=price,
+                    order_item_code=item.code
+                )
+                
         inv.recalculate()
