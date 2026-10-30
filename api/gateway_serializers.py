@@ -28,25 +28,23 @@ class PaymentGatewayConfigSerializer(serializers.ModelSerializer):
             "last_verification_message",
         ]
 
-    def get_secret_key_set(self, obj) -> bool: return bool(obj.secret_key)
+    def get_secret_key_set(self, obj) -> bool:     return bool(obj.secret_key)
     def get_webhook_secret_set(self, obj) -> bool: return bool(obj.webhook_secret)
 
-    def _apply_secrets(self, instance, validated):
+    def _filter_secrets(self, validated):
         for field in ("secret_key", "webhook_secret"):
-            if field in validated and validated[field]:
-                setattr(instance, field, validated.pop(field))
-            else:
-                validated.pop(field, None)
+            if field in validated and not validated[field]:
+                validated.pop(field)
         return validated
 
     def create(self, validated):
         request = self.context["request"]
         validated["tenant"] = request.user.tenant
-        validated = self._apply_secrets(PaymentGatewayConfig(), validated)
+        validated = self._filter_secrets(validated)
         return super().create(validated)
 
     def update(self, instance, validated):
-        validated = self._apply_secrets(instance, validated)
+        validated = self._filter_secrets(validated)
         return super().update(instance, validated)
 
     def validate(self, data):

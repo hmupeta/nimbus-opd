@@ -1,11 +1,8 @@
 from rest_framework import serializers
-
 from tenants.models import MobileMoneyConfig
 
 
 class MobileMoneyConfigSerializer(serializers.ModelSerializer):
-    """Secrets are write-only; their presence is exposed as `*_set` booleans."""
-
     api_key = serializers.CharField(
         write_only=True, required=False, allow_blank=True,
         style={"input_type": "password"},
@@ -50,23 +47,22 @@ class MobileMoneyConfigSerializer(serializers.ModelSerializer):
     def get_api_password_set(self, obj) -> bool:     return bool(obj.api_password)
     def get_subscription_key_set(self, obj) -> bool: return bool(obj.subscription_key)
 
-    def _apply_secrets(self, instance, validated):
-        """Only overwrite a secret when the client sent a non-empty value."""
+    def _filter_secrets(self, validated):
+        """Remove empty secret fields from validated so they don't overwrite existing values.
+        Keep non-empty fields so super().create() and super().update() save them."""
         for field in ("api_key", "api_secret", "api_password", "subscription_key"):
-            if field in validated and validated[field]:
-                setattr(instance, field, validated.pop(field))
-            else:
-                validated.pop(field, None)
+            if field in validated and not validated[field]:
+                validated.pop(field)
         return validated
 
     def create(self, validated):
         request = self.context["request"]
         validated["tenant"] = request.user.tenant
-        validated = self._apply_secrets(MobileMoneyConfig(), validated)
+        validated = self._filter_secrets(validated)
         return super().create(validated)
 
     def update(self, instance, validated):
-        validated = self._apply_secrets(instance, validated)
+        validated = self._filter_secrets(validated)
         return super().update(instance, validated)
 
     def validate(self, data):
