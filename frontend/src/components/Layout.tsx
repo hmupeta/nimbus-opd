@@ -7,85 +7,120 @@ export default function Layout() {
 
   function handleLogout() { logout(); nav("/login"); }
 
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `px-3 py-2 rounded-md text-sm font-medium ${
-      isActive ? "bg-sky-100 text-sky-700" : "text-slate-600 hover:bg-slate-100"
+  const isClinicalStaff = !user?.is_platform_admin;
+  const isAdmin = user?.role === "admin" || user?.role === "finance_manager";
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+      isActive 
+        ? "bg-slate-800 text-white" 
+        : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
     }`;
 
-  const isClinicalStaff = !user?.is_platform_admin;
+  const sectionTitle = "px-3 pt-6 pb-2 text-xs font-bold text-slate-500 uppercase tracking-wider";
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-slate-200 no-print">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center gap-6">
-          <Link to="/dashboard" className="text-lg font-bold text-sky-700">OPD</Link>
-          <nav className="flex gap-1 overflow-x-auto">
-            {isClinicalStaff && <NavLink to="/dashboard" className={linkClass}>Dashboard</NavLink>}
-            {isClinicalStaff && <NavLink to="/patients" className={linkClass}>Patients</NavLink>}
-            
-            {isClinicalStaff && (user?.role === "receptionist" || user?.role === "admin") && (
-              <NavLink to="/appointments" className={linkClass}>Appointments</NavLink>
-            )}
+    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+      {/* ─── SIDEBAR ─── */}
+      <aside className="w-64 flex-shrink-0 bg-slate-900 flex flex-col h-full">
+        <div className="h-16 flex items-center px-6 border-b border-slate-800">
+          <Link to="/dashboard" className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            <span className="w-6 h-6 bg-sky-500 rounded flex items-center justify-center text-xs">N</span>
+            Nimbus OPD
+          </Link>
+        </div>
 
-            {isClinicalStaff && (user?.role === "lab" || user?.role === "admin") && (
-              <NavLink to="/lab" className={linkClass}>Lab Queue</NavLink>
-            )}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-slate-700">
+          {isClinicalStaff && (
+            <>
+              <div className={sectionTitle}>Clinical</div>
+              <NavLink to="/dashboard" className={navLinkClass}>Dashboard</NavLink>
+              <NavLink to="/patients" className={navLinkClass}>Patients</NavLink>
+              {(user?.role === "receptionist" || user?.role === "admin") && (
+                <NavLink to="/appointments" className={navLinkClass}>Appointments</NavLink>
+              )}
 
-            {isClinicalStaff && (user?.role === "radiology" || user?.role === "admin") && (
-              <NavLink to="/radiology" className={linkClass}>Radiology</NavLink>
-            )}
+              <div className={sectionTitle}>Departments</div>
+              {(user?.role === "lab" || user?.role === "admin" || user?.role === "doctor") && (
+                <NavLink to="/lab" className={navLinkClass}>Lab Queue</NavLink>
+              )}
+              {(user?.role === "radiology" || user?.role === "admin" || user?.role === "doctor") && (
+                <NavLink to="/radiology" className={navLinkClass}>Radiology</NavLink>
+              )}
+              {(user?.role === "pharmacist" || user?.role === "admin") && (
+                <NavLink to="/pharmacy" className={navLinkClass}>Pharmacy</NavLink>
+              )}
+              {(user?.role === "pharmacist" || user?.role === "admin") && (
+                <NavLink to="/stock" className={navLinkClass}>Stock</NavLink>
+              )}
+            </>
+          )}
 
-            {isClinicalStaff && (user?.role === "pharmacist" || user?.role === "admin") && (
-              <NavLink to="/pharmacy" className={linkClass}>Pharmacy</NavLink>
-            )}
+          {isClinicalStaff && (
+            <>
+              <div className={sectionTitle}>Finance</div>
+              {(user?.role === "receptionist" || user?.role === "admin") && (
+                <NavLink to="/billing" className={navLinkClass}>Billing</NavLink>
+              )}
+              {(user?.role === "accountant" || user?.role === "finance_manager" || user?.role === "admin") && (
+                <>
+                  <NavLink to="/accounting" className={navLinkClass}>Accounting</NavLink>
+                  <NavLink to="/integrations" className={navLinkClass}>Integrations</NavLink>
+                </>
+              )}
+            </>
+          )}
 
-            {isClinicalStaff && (user?.role === "pharmacist" || user?.role === "admin") && (
-              <NavLink to="/stock" className={linkClass}>Stock</NavLink>
-            )}
+          {isClinicalStaff && isAdmin && (
+            <>
+              <div className={sectionTitle}>Administration</div>
+              <NavLink to="/staff" className={navLinkClass}>Staff</NavLink>
+              <NavLink to="/lab-catalog" className={navLinkClass}>Lab Catalog</NavLink>
+              <NavLink to="/radiology-catalog" className={navLinkClass}>Radiology Catalog</NavLink>
+              <NavLink to="/pharmacy-catalog" className={navLinkClass}>Pharmacy Catalog</NavLink>
+              <NavLink to="/reports" className={navLinkClass}>MIS Reports</NavLink>
+              <NavLink to="/audit" className={navLinkClass}>Audit Trail</NavLink>
+            </>
+          )}
 
-            {isClinicalStaff && (user?.role === "receptionist" || user?.role === "admin") && (
-              <NavLink to="/billing" className={linkClass}>Billing</NavLink>
-            )}
+          {user?.is_platform_admin && (
+            <>
+              <div className={sectionTitle}>Platform</div>
+              <NavLink to="/platform" className={navLinkClass}>Platform Admin</NavLink>
+            </>
+          )}
+        </nav>
 
-            {isClinicalStaff && (user?.role === "accountant" || user?.role === "finance_manager" || user?.role === "admin") && (
-              <>
-                <NavLink to="/accounting" className={linkClass}>Accounting</NavLink>
-                <NavLink to="/integrations" className={linkClass}>Integrations</NavLink>
-              </>
-            )}
+        {/* User Profile / Footer */}
+        <div className="p-4 border-t border-slate-800 bg-slate-900">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-sky-400 font-bold">
+              {user?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{user?.full_name || "User"}</p>
+              <p className="text-xs text-slate-400 capitalize truncate">{user?.role}</p>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-medium rounded transition">
+            Sign out
+          </button>
+        </div>
+      </aside>
 
-            {isClinicalStaff && user?.role === "admin" && (
-              <>
-                <NavLink to="/staff" className={linkClass}>Staff</NavLink>
-                <NavLink to="/lab-catalog" className={linkClass}>Lab Catalog</NavLink>
-                <NavLink to="/radiology-catalog" className={linkClass}>Radiology Catalog</NavLink>
-                <NavLink to="/pharmacy-catalog" className={linkClass}>Pharmacy Catalog</NavLink>
-                <NavLink to="/reports" className={linkClass}>MIS Reports</NavLink>
-                <NavLink to="/audit" className={linkClass}>Audit Trail</NavLink>
-              </>
-            )}
+      {/* ─── MAIN CONTENT ─── */}
+      <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Top header for mobile/tablet (optional, keeping it clean for now) */}
+        <header className="h-16 bg-white border-b border-slate-200 flex items-center px-6 lg:hidden">
+          <span className="font-bold text-slate-800">Nimbus OPD</span>
+        </header>
 
-            {user?.is_platform_admin && (
-              <NavLink to="/platform" className={linkClass}>Platform Admin</NavLink>
-            )}
-          </nav>
-          <div className="ml-auto flex items-center gap-3 text-sm text-slate-600 shrink-0">
-            {user ? (
-              <>
-                <span className="hidden md:inline">{user.full_name || user.email}</span>
-                <span className="text-xs bg-slate-100 px-2 py-0.5 rounded capitalize">{user.role}</span>
-                <button onClick={handleLogout} className="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200">
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <Link to="/login" className="text-sky-700 font-medium">Sign in</Link>
-            )}
+        {/* Scrollable page content */}
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8">
+          <div className="max-w-6xl mx-auto h-full">
+            <Outlet />
           </div>
         </div>
-      </header>
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-6">
-        <Outlet />
       </main>
     </div>
   );
