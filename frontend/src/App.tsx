@@ -17,6 +17,12 @@ import BillingDashboard from "./pages/BillingDashboard";
 import Appointments from "./pages/Appointments";
 import AuditTrail from "./pages/AuditTrail";
 import AccountingDashboard from "./pages/AccountingDashboard";
+import ChartOfAccounts from "./pages/ChartOfAccounts";
+import Suppliers from "./pages/Suppliers";
+import Expenses from "./pages/Expenses";
+import FixedAssets from "./pages/FixedAssets";
+import AccountsPayable from "./pages/AccountsPayable";
+
 import Integrations from "./pages/Integrations";
 import MISReports from "./pages/MISReports";
 import Staff from "./pages/Staff";
@@ -47,6 +53,12 @@ export default function App() {
           <Route path="/billing" element={<BillingDashboard />} />
           <Route path="/audit" element={<AuditTrail />} />
           <Route path="/accounting" element={<AccountingDashboard />} />
+          <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
+          <Route path="/suppliers" element={<Suppliers />} />
+          <Route path="/expenses" element={<Expenses />} />
+          <Route path="/fixed-assets" element={<FixedAssets />} />
+          <Route path="/accounts-payable" element={<AccountsPayable />} />
+
           <Route path="/integrations" element={<Integrations />} />
           <Route path="/reports" element={<MISReports />} />
           <Route path="/staff" element={<Staff />} />
