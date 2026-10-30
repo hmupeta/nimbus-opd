@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from clinical.models import ClinicalNote, Order, OrderItem
+from accounting.models import JournalEntry, JournalEntryLine
 from lab.models import LabOrder, LabResult, LabTest
 from patients.models import Patient
 from pharmacy.models import (
