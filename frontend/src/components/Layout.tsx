@@ -78,8 +78,8 @@ export default function Layout() {
               <NavItem to="/appointments" icon={Calendar} label="Appointments" roles={["receptionist", "admin"]} />
 
               <SectionTitle title="Departments" />
-              <NavItem to="/lab" icon={FlaskConical} label="Lab Queue" roles={["lab", "admin", "doctor"]} />
-              <NavItem to="/radiology" icon={Scan} label="Radiology" roles={["radiology", "admin", "doctor"]} />
+              <NavItem to="/lab" icon={FlaskConical} label="Lab Queue" roles={["lab", "admin"]} />
+              <NavItem to="/radiology" icon={Scan} label="Radiology" roles={["radiology", "admin"]} />
               <NavItem to="/pharmacy" icon={Pill} label="Pharmacy" roles={["pharmacist", "admin"]} />
               <NavItem to="/stock" icon={Boxes} label="Stock" roles={["pharmacist", "admin"]} />
             </>
