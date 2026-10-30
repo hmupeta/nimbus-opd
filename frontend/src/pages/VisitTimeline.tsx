@@ -9,15 +9,15 @@ export default function VisitTimeline() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
   const user = currentUser();
-  
+
   const [showVitalsForm, setShowVitalsForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [showLabForm, setShowLabForm] = useState(false);
-  const [customTest, setCustomTest] = useState(false);
   const [showRadForm, setShowRadForm] = useState(false);
+  const [showMedForm, setShowMedForm] = useState(false);
+  const [customTest, setCustomTest] = useState(false);
   const [customRad, setCustomRad] = useState(false);
   const [customMed, setCustomMed] = useState(false);
-  const [showMedForm, setShowMedForm] = useState(false);
 
   const isNurse = user?.role === "nurse";
   const isDoctor = user?.role === "doctor";
@@ -49,15 +49,12 @@ export default function VisitTimeline() {
   });
 
   const closeVisit = useMutation({
-    mutationFn: async () => {
-      const { data } = await api.post(`/visits/${id}/close/`);
-      return data;
-    },
+    mutationFn: async () => (await api.post(`/visits/${id}/close/`)).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["visit", id, "timeline"] }),
     onError: (error: any) => {
       const msg = error.response?.data?.detail || "Failed to close visit.";
       alert(`Cannot Close Visit:\n\n${msg}`);
-    }
+    },
   });
 
   const recordVitals = useMutation({
@@ -98,6 +95,7 @@ export default function VisitTimeline() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["visit", id, "timeline"] });
       setShowRadForm(false);
+      setCustomRad(false);
     },
   });
 
@@ -108,6 +106,7 @@ export default function VisitTimeline() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["visit", id, "timeline"] });
       setShowMedForm(false);
+      setCustomMed(false);
     },
   });
 
@@ -115,7 +114,9 @@ export default function VisitTimeline() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const payload: any = {};
-    fd.forEach((v, k) => { if (v !== "") payload[k] = String(v); });
+    fd.forEach((v, k) => {
+      if (v !== "") payload[k] = String(v);
+    });
     recordVitals.mutate(payload);
   }
 
@@ -141,11 +142,11 @@ export default function VisitTimeline() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Link to="/" className="text-sm text-sky-700">← Dashboard</Link>
+        <Link to="/dashboard" className="text-sm text-sky-700">← Dashboard</Link>
         <h1 className="text-2xl font-semibold">
           {t.visit_no} — {t.patient.full_name}
         </h1>
-        <span className={`text-xs rounded px-2 py-0.5 ${t.status === 'open' ? 'bg-amber-100 text-amber-700' : 'bg-sky-100 text-sky-700'}`}>
+        <span className={`text-xs rounded px-2 py-0.5 ${t.status === "open" ? "bg-amber-100 text-amber-700" : "bg-sky-100 text-sky-700"}`}>
           {t.status}
         </span>
         <div className="ml-auto flex gap-2">
@@ -162,20 +163,7 @@ export default function VisitTimeline() {
         </div>
       </div>
 
-      {t.status === "open" && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-lg flex items-center justify-between shadow-sm">
-          <div>
-            <p className="font-semibold">Action Required</p>
-            <p className="text-sm">This patient needs their vitals recorded before the doctor can see them.</p>
-          </div>
-          {canRecordVitals && !showVitalsForm && (
-            <button onClick={() => setShowVitalsForm(true)} className="bg-amber-600 text-white px-4 py-2 rounded shadow hover:bg-amber-700 text-sm font-medium">
-              Record Vitals Now
-            </button>
-          )}
-        </div>
-      )}
-
+      {/* Triage complete banner for nurses */}
       {t.status === "triaged" && (isNurse || isAdmin) && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-lg flex items-center justify-between shadow-sm">
           <div>
@@ -189,6 +177,7 @@ export default function VisitTimeline() {
       )}
 
       <div className="grid md:grid-cols-3 gap-4">
+        {/* PATIENT */}
         <Card title="Patient">
           <p className="font-medium">{t.patient.full_name}</p>
           <p className="text-sm text-slate-500">MRN {t.patient.mrn}</p>
@@ -222,8 +211,8 @@ export default function VisitTimeline() {
                 <label className="text-xs"><span className="text-slate-500">Weight (kg)</span><input type="number" step="0.1" min="1" max="300" name="weight_kg" className="w-full border rounded px-2 py-1 mt-1" /></label>
               </div>
               <div className="flex justify-end gap-2 mt-2">
-                <button type="button" onClick={() => setShowVitalsForm(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
-                <button type="submit" disabled={recordVitals.isPending} className="text-xs bg-sky-600 text-white px-3 py-1 rounded hover:bg-sky-700 disabled:opacity-50">Save</button>
+                <button type="button" onClick={() => setShowVitalsForm(false)} className="text-xs text-slate-500">Cancel</button>
+                <button type="submit" disabled={recordVitals.isPending} className="text-xs bg-sky-600 text-white px-3 py-1 rounded hover:bg-sky-700">Save</button>
               </div>
             </form>
           ) : (
@@ -243,12 +232,12 @@ export default function VisitTimeline() {
               <li key={o.id} className="flex flex-col py-1 border-b last:border-0">
                 <div className="flex justify-between items-center mb-1">
                   <span className="capitalize font-medium text-slate-700">{o.kind}</span>
-                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${o.status === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${o.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                     {o.status}
                   </span>
                 </div>
                 <ul className="text-xs text-slate-500 pl-2 border-l-2 border-slate-100">
-                  {o.items.map(i => (
+                  {o.items.map((i) => (
                     <li key={i.id}>{i.quantity}x {i.description} ({i.code})</li>
                   ))}
                 </ul>
@@ -268,9 +257,9 @@ export default function VisitTimeline() {
               )}
 
               {showLabForm && (
-                <form onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  const fd = new FormData(e.currentTarget); 
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
                   const testVal = fd.get("test");
                   if (testVal === "custom") {
                     orderLab.mutate({ custom_test_name: fd.get("custom_test_name") });
@@ -283,17 +272,9 @@ export default function VisitTimeline() {
                     {labs.data?.map((l: any) => <option key={l.id} value={l.id}>{l.name} ({l.code})</option>)}
                     <option value="custom">+ Custom / Unlisted Test</option>
                   </select>
-                  
                   {customTest && (
-                    <input name="custom_test_name" required placeholder="Enter test name (e.g. Malaria RDT)" className="w-full border rounded px-2 py-1 text-xs" />
+                    <input name="custom_test_name" required placeholder="Enter test name" className="w-full border rounded px-2 py-1 text-xs" />
                   )}
-                  
-                  <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => { setShowLabForm(false); setCustomTest(false); }} className="text-[10px] text-slate-500">Cancel</button>
-                    <button type="submit" disabled={orderLab.isPending} className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded">Order</button>
-                  </div>
-                </form>
-              )}
                   <div className="flex justify-end gap-2">
                     <button type="button" onClick={() => { setShowLabForm(false); setCustomTest(false); }} className="text-[10px] text-slate-500">Cancel</button>
                     <button type="submit" disabled={orderLab.isPending} className="text-[10px] bg-indigo-600 text-white px-2 py-1 rounded">Order</button>
@@ -302,9 +283,9 @@ export default function VisitTimeline() {
               )}
 
               {showRadForm && (
-                <form onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  const fd = new FormData(e.currentTarget); 
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
                   const examVal = fd.get("exam");
                   if (examVal === "custom") {
                     orderRadiology.mutate({ custom_modality: fd.get("custom_modality"), custom_body_part: fd.get("custom_body_part"), notes: fd.get("notes") });
@@ -319,7 +300,7 @@ export default function VisitTimeline() {
                   </select>
                   {customRad && (
                     <div className="grid grid-cols-2 gap-1">
-                      <input name="custom_modality" placeholder="Modality (e.g. X-ray)" required className="w-full border rounded px-2 py-1 text-xs" />
+                      <input name="custom_modality" placeholder="Modality (X-ray, CT...)" required className="w-full border rounded px-2 py-1 text-xs" />
                       <input name="custom_body_part" placeholder="Body Part" required className="w-full border rounded px-2 py-1 text-xs" />
                     </div>
                   )}
@@ -332,13 +313,15 @@ export default function VisitTimeline() {
               )}
 
               {showMedForm && (
-                <form onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  const fd = new FormData(e.currentTarget); 
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const fd = new FormData(e.currentTarget);
                   const medVal = fd.get("medicine");
                   const payload: any = {
-                    dose: fd.get("dose"), frequency: fd.get("frequency"),
-                    duration_days: Number(fd.get("duration_days")), quantity: Number(fd.get("quantity"))
+                    dose: fd.get("dose"),
+                    frequency: fd.get("frequency"),
+                    duration_days: Number(fd.get("duration_days")),
+                    quantity: Number(fd.get("quantity")),
                   };
                   if (medVal === "custom") {
                     payload.custom_medicine_name = fd.get("custom_medicine_name");
@@ -362,7 +345,7 @@ export default function VisitTimeline() {
                     <input type="number" name="quantity" defaultValue="9" placeholder="Qty" required className="w-full border rounded px-1 py-1 text-xs" />
                   </div>
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowMedForm(false)} className="text-[10px] text-slate-500">Cancel</button>
+                    <button type="button" onClick={() => { setShowMedForm(false); setCustomMed(false); }} className="text-[10px] text-slate-500">Cancel</button>
                     <button type="submit" disabled={prescribe.isPending} className="text-[10px] bg-emerald-600 text-white px-2 py-1 rounded">Prescribe</button>
                   </div>
                 </form>
@@ -382,7 +365,7 @@ export default function VisitTimeline() {
             </button>
           )}
         </div>
-        
+
         {showNoteForm && (
           <form onSubmit={onNoteSubmit} className="mb-6 bg-slate-50 border rounded-lg p-4 space-y-3">
             <h3 className="text-sm font-semibold text-sky-800">New SOAP Note</h3>
@@ -393,7 +376,7 @@ export default function VisitTimeline() {
               <label className="block text-xs"><span className="text-slate-600 font-medium">Plan</span><textarea name="plan" rows={2} className="mt-1 w-full border rounded px-2 py-1" /></label>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setShowNoteForm(false)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+              <button type="button" onClick={() => setShowNoteForm(false)} className="text-xs text-slate-500">Cancel</button>
               <button type="submit" disabled={addNote.isPending} className="text-xs bg-sky-600 text-white px-4 py-1.5 rounded hover:bg-sky-700">Save Note</button>
             </div>
           </form>
@@ -418,6 +401,7 @@ export default function VisitTimeline() {
         )}
       </div>
 
+      {/* RADIOLOGY ORDERS */}
       <Card title="Radiology orders">
         {(t.rad_orders as any[]).length === 0 ? (
           <p className="text-sm text-slate-500">No radiology orders.</p>
@@ -428,7 +412,7 @@ export default function VisitTimeline() {
                 <div className="w-full">
                   <div className="flex justify-between items-center w-full mb-1">
                     <span className="font-medium text-slate-700">{o.modality} - {o.body_part}</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${o.status === 'reported' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${o.status === "reported" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                       {o.status}
                     </span>
                   </div>
@@ -450,6 +434,7 @@ export default function VisitTimeline() {
         )}
       </Card>
 
+      {/* PHARMACY ORDERS */}
       <Card title="Pharmacy orders">
         {(t.pharm_orders as any[]).length === 0 ? (
           <p className="text-sm text-slate-500">No prescriptions.</p>
@@ -460,7 +445,7 @@ export default function VisitTimeline() {
                 <div className="w-full">
                   <div className="flex justify-between items-center w-full mb-1">
                     <span className="text-xs font-semibold text-slate-500 uppercase">Prescription</span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${o.status === 'dispensed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${o.status === "dispensed" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
                       {o.status}
                     </span>
                   </div>
@@ -481,6 +466,7 @@ export default function VisitTimeline() {
         )}
       </Card>
 
+      {/* LAB ORDERS */}
       <Card title="Lab orders">
         {t.lab_orders.length === 0 ? (
           <p className="text-sm text-slate-500">No lab orders.</p>
@@ -505,37 +491,6 @@ export default function VisitTimeline() {
           </ul>
         )}
       </Card>
-
-      {/* Printable Prescription (Hidden on screen) */}
-      <div id="print-area" className="hidden">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold">Nimbus OPD Cloud</h1>
-          <p className="text-sm">Prescription Slip</p>
-        </div>
-        <div className="mb-6">
-          <p><b>Patient:</b> {t.patient.full_name} ({t.patient.mrn})</p>
-          <p><b>Date:</b> {new Date(t.arrived_at).toLocaleDateString()}</p>
-        </div>
-        <div className="mb-6">
-          <h3 className="font-bold border-b mb-2 pb-1">Diagnosis / Assessment</h3>
-          <p className="text-sm">{t.notes[0]?.assessment || "N/A"}</p>
-        </div>
-        <div>
-          <h3 className="font-bold border-b mb-2 pb-1">Medications</h3>
-          <ul className="list-disc pl-5 space-y-1 text-sm">
-            {(t.pharm_orders as any[]).map((po: any) =>
-              po.items.map((i: any) => (
-                <li key={i.id}>
-                  <b>{i.medicine_name}</b> - {i.dose} {i.frequency} for {i.duration_days} days ({i.quantity_prescribed} total)
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-        <div className="mt-16 pt-8 border-t text-center text-xs">
-          <p>Doctor Signature: ____________________</p>
-        </div>
-      </div>
     </div>
   );
 }
