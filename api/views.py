@@ -270,30 +270,28 @@ class VisitViewSet(TenantScopedViewSet):
     def prescribe(self, request, pk=None):
         visit = self.get_object()
         med_id = request.data.get("medicine")
+        custom_med_name = request.data.get("custom_medicine_name")
+        
         dose = request.data.get("dose", "1 tab")
         freq = request.data.get("frequency", "OD")
         duration = request.data.get("duration_days", 1)
         qty = request.data.get("quantity", 1)
 
-        if not med_id:
-            return Response({"detail": "medicine is required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not med_id and not custom_med_name:
+            return Response({"detail": "medicine or custom_medicine_name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         from pharmacy.models import Medicine, PharmacyOrder, PharmacyItem
         from decimal import Decimal
-        
-        custom_med_name = request.data.get("custom_medicine_name")
         
         if med_id:
             med = Medicine.objects.filter(id=med_id).first()
             if not med:
                 return Response({"detail": "Invalid medicine"}, status=status.HTTP_400_BAD_REQUEST)
-        elif custom_med_name:
+        else:
             med, _ = Medicine.objects.get_or_create(
                 tenant=visit.tenant, name=custom_med_name,
                 defaults={"code": custom_med_name[:10].upper().replace(" ", ""), "base_price": Decimal("0.00")}
             )
-        else:
-            return Response({"detail": "medicine or custom_medicine_name is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
             order = Order.objects.create(visit=visit, ordered_by=request.user, kind=Order.Kind.PHARMACY, status=Order.Status.PENDING)
