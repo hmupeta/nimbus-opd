@@ -7,7 +7,6 @@ export default function Integrations() {
   const qc = useQueryClient();
   const [tab, setTab] = useState<"momo" | "gateway">("momo");
 
-  // Form state for generating API user
   const [apiUser, setApiUser] = useState("");
   const [apiKey, setApiKey] = useState("");
 
@@ -23,7 +22,11 @@ export default function Integrations() {
 
   const createMomo = useMutation({
     mutationFn: async (payload: any) => await api.post("/mobile-money-configs/", payload),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["momo-configs"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["momo-configs"] });
+      setApiUser("");
+      setApiKey("");
+    },
   });
 
   const createGateway = useMutation({
@@ -52,7 +55,7 @@ export default function Integrations() {
       const { data } = await api.post(endpoint);
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["momo-configs"] });
       qc.invalidateQueries({ queryKey: ["gateway-configs"] });
     }
@@ -85,13 +88,6 @@ export default function Integrations() {
       is_active: true,
     });
   }
-
-  // Helper to render status
-  const renderStatus = (cfg: any) => {
-    if (!cfg.last_verification_status) return <span className="text-slate-400 text-xs">Not tested</span>;
-    if (cfg.last_verification_status === "ok") return <span className="text-emerald-600 font-bold text-xs" title={cfg.last_verification_message}>✓ Verified</span>;
-    return <span className="text-red-500 font-bold text-xs" title={cfg.last_verification_message}>✗ Failed</span>;
-  };
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -156,7 +152,7 @@ export default function Integrations() {
               <label className="text-sm"><span className="text-slate-600">API Key</span>
                 <input name="api_key" value={apiKey} onChange={(e) => setApiKey(e.target.value)} readOnly className="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500" placeholder="Click Generate above" />
               </label>
-              <label className="text-sm"><span className="text-slate-600">API Secret</span><input name="api_secret" required className="mt-1 w-full border rounded-lg px-3 py-2" /></label>
+              <label className="text-sm"><span className="text-red-500 font-medium">API Secret *</span><input name="api_secret" required className="mt-1 w-full border rounded-lg px-3 py-2" /></label>
               <label className="text-sm"><span className="text-slate-600">Subscription Key</span><input name="subscription_key" className="mt-1 w-full border rounded-lg px-3 py-2" /></label>
             </div>
             
@@ -180,7 +176,16 @@ export default function Integrations() {
                     <td className="px-4 py-3 font-medium capitalize">{c.provider.replace("_", " ")}</td>
                     <td className="px-4 py-3 capitalize">{c.environment}</td>
                     <td className="px-4 py-3">{c.merchant_code}</td>
-                    <td className="px-4 py-3">{renderStatus(c)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className={`font-bold text-xs ${c.last_verification_status === 'ok' ? 'text-emerald-600' : c.last_verification_status === 'failed' ? 'text-red-500' : 'text-slate-400'}`}>
+                          {c.last_verification_status === 'ok' ? '✓ Verified' : c.last_verification_status === 'failed' ? '✗ Failed' : 'Not tested'}
+                        </span>
+                        {c.last_verification_status === 'failed' && (
+                          <span className="text-[10px] text-red-500 max-w-[200px] leading-tight">{c.last_verification_message}</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <button 
                         onClick={() => testConnection.mutate({ id: c.id, type: "momo" })} 
@@ -236,7 +241,16 @@ export default function Integrations() {
                   <tr key={c.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium capitalize">{c.provider}</td>
                     <td className="px-4 py-3 capitalize">{c.environment}</td>
-                    <td className="px-4 py-3">{renderStatus(c)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <span className={`font-bold text-xs ${c.last_verification_status === 'ok' ? 'text-emerald-600' : c.last_verification_status === 'failed' ? 'text-red-500' : 'text-slate-400'}`}>
+                          {c.last_verification_status === 'ok' ? '✓ Verified' : c.last_verification_status === 'failed' ? '✗ Failed' : 'Not tested'}
+                        </span>
+                        {c.last_verification_status === 'failed' && (
+                          <span className="text-[10px] text-red-500 max-w-[200px] leading-tight">{c.last_verification_message}</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <button 
                         onClick={() => testConnection.mutate({ id: c.id, type: "gateway" })} 
