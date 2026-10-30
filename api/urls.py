@@ -10,6 +10,7 @@ from .tokens import TenantTokenObtainPairView
 from .appointment_views import AppointmentViewSet
 from .momo_views import MobileMoneyConfigViewSet
 from .accounting_views import JournalEntryViewSet
+from .finance_views import ChartOfAccountViewSet, SupplierViewSet, BillViewSet, ExpenseViewSet, FixedAssetViewSet
 from .gateway_views import PaymentGatewayConfigViewSet
 from .billing_views import (
     InsuranceClaimViewSet, InsuranceProviderViewSet,
@@ -60,6 +61,11 @@ router.register("payments", PaymentViewSet, basename="payment")
 router.register("insurance-claims", InsuranceClaimViewSet, basename="claim")
 router.register("mobile-money-configs", MobileMoneyConfigViewSet, basename="momo")
 router.register("journal-entries", JournalEntryViewSet, basename="journal-entry")
+router.register("chart-of-accounts", ChartOfAccountViewSet, basename="coa")
+router.register("suppliers", SupplierViewSet, basename="supplier")
+router.register("bills", BillViewSet, basename="bill")
+router.register("expenses", ExpenseViewSet, basename="expense")
+router.register("fixed-assets", FixedAssetViewSet, basename="fixed-asset")
 router.register("payment-gateway-configs", PaymentGatewayConfigViewSet, basename="gateway")
 
 urlpatterns = [

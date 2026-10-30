@@ -18,9 +18,7 @@ class ChartOfAccount(TenantAwareModel):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(fields=["tenant", "code"], name="uniq_account_code"),
-        ]
+        constraints = [models.UniqueConstraint(fields=["tenant", "code"], name="uniq_account_code")]
         ordering = ["code"]
 
     def __str__(self):
@@ -34,11 +32,11 @@ class JournalEntry(TenantAwareModel):
         REJECTED = "rejected", "Rejected"
 
     date = models.DateField()
+    reference = models.CharField(max_length=64, help_text="Invoice #, Bill #, or manual ref")
+    description = models.CharField(max_length=255)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     approved_by = models.ForeignKey("tenants.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     approved_at = models.DateTimeField(null=True, blank=True)
-    reference = models.CharField(max_length=64, help_text="Invoice # or Payment #")
-    description = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -48,7 +46,6 @@ class JournalEntry(TenantAwareModel):
         return f"JE-{self.id} ({self.reference})"
 
     def verify_balance(self):
-        """Ensure Debits == Credits. Raises error if unbalanced."""
         debits = sum(line.debit for line in self.lines.all())
         credits = sum(line.credit for line in self.lines.all())
         if debits != credits:
@@ -66,5 +63,59 @@ class JournalEntryLine(TenantAwareModel):
             raise ValidationError("A line cannot have both a debit and a credit.")
         super().save(*args, **kwargs)
 
+
+class Supplier(TenantAwareModel):
+    name = models.CharField(max_length=128)
+    contact_name = models.CharField(max_length=128, blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=32, blank=True)
+    address = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
     def __str__(self):
-        return f"{self.account.code} - D:{self.debit} C:{self.credit}"
+        return self.name
+
+
+class Bill(TenantAwareModel):
+    class Status(models.TextChoices):
+        UNPAID = "unpaid", "Unpaid"
+        PARTIAL = "partial", "Partially Paid"
+        PAID = "paid", "Paid"
+
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="bills")
+    reference = models.CharField(max_length=64, blank=True, help_text="Supplier invoice #")
+    date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.UNPAID)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Bill {self.id} - {self.supplier.name} (ZMW {self.amount})"
+
+
+class Expense(TenantAwareModel):
+    date = models.DateField()
+    category = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, limit_choices_to={"type": "expense"})
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    description = models.CharField(max_length=255)
+    payment_method = models.CharField(max_length=32, blank=True)
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Expense {self.id} - {self.description} (ZMW {self.amount})"
+
+
+class FixedAsset(TenantAwareModel):
+    name = models.CharField(max_length=128)
+    category = models.ForeignKey(ChartOfAccount, on_delete=models.PROTECT, limit_choices_to={"type": "asset"})
+    purchase_date = models.DateField()
+    purchase_cost = models.DecimalField(max_digits=12, decimal_places=2)
+    salvage_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    useful_life_years = models.PositiveIntegerField(default=5)
+    is_disposed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} (ZMW {self.purchase_cost})"

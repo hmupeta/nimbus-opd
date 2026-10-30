@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from clinical.models import ClinicalNote, Order, OrderItem
-from accounting.models import JournalEntry, JournalEntryLine
+from accounting.models import ChartOfAccount, JournalEntry, JournalEntryLine, Supplier, Bill, Expense, FixedAsset
 from lab.models import LabOrder, LabResult, LabTest
 from patients.models import Patient
 from pharmacy.models import (
@@ -356,3 +356,32 @@ class JournalEntrySerializer(serializers.ModelSerializer):
     class Meta:
         model = JournalEntry
         fields = ["id", "date", "reference", "description", "status", "approved_by_name", "approved_at", "lines"]
+
+
+class ChartOfAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChartOfAccount
+        fields = ["id", "code", "name", "type", "is_active"]
+
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = ["id", "name", "contact_name", "email", "phone", "address", "is_active"]
+
+class BillSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    class Meta:
+        model = Bill
+        fields = ["id", "supplier", "supplier_name", "reference", "date", "due_date", "amount", "status"]
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    class Meta:
+        model = Expense
+        fields = ["id", "date", "category", "category_name", "amount", "description", "payment_method", "is_approved"]
+
+class FixedAssetSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    class Meta:
+        model = FixedAsset
+        fields = ["id", "name", "category", "category_name", "purchase_date", "purchase_cost", "salvage_value", "useful_life_years", "is_disposed"]
