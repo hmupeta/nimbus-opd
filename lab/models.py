@@ -50,6 +50,7 @@ class LabResult(TenantAwareModel):
     flag = models.CharField(max_length=8, choices=Flag.choices, default=Flag.NORMAL)
     comment = models.TextField(blank=True)
     resulted_by = models.ForeignKey("tenants.User", on_delete=models.PROTECT)
+    attachment = models.FileField(upload_to="lab_results/", null=True, blank=True)
     resulted_at = models.DateTimeField(auto_now_add=True)
     verified_by = models.ForeignKey("tenants.User", on_delete=models.SET_NULL,
                                     null=True, blank=True, related_name="+")

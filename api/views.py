@@ -489,6 +489,10 @@ class LabOrderViewSet(TenantScopedViewSet):
                 "resulted_by": request.user,
             }
         )
+        if "attachment" in request.FILES:
+            result.attachment = request.FILES["attachment"]
+            result.save()
+
 
         # Update the parent LabOrder status
         lo.status = LabOrder.Status.COMPLETED

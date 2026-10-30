@@ -202,7 +202,7 @@ class LabResultSerializer(serializers.ModelSerializer):
     class Meta:
         model = LabResult
         fields = ["id", "lab_order", "value_text", "unit", "flag",
-                  "comment", "resulted_by", "resulted_at", "verified_by"]
+                  "comment", "attachment", "resulted_by", "resulted_at", "verified_by"]
         read_only_fields = ["id", "resulted_at", "resulted_by"]
 
 

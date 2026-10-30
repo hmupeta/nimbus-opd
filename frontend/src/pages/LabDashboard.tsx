@@ -14,8 +14,10 @@ export default function LabDashboard() {
   });
 
   const submitResult = useMutation({
-    mutationFn: async ({ id, payload }: { id: number; payload: any }) => {
-      await api.post(`/lab-orders/${id}/result/`, payload);
+    mutationFn: async ({ id, payload }: { id: number; payload: FormData }) => {
+      await api.post(`/lab-orders/${id}/result/`, payload, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["lab-orders"] });
@@ -125,6 +127,10 @@ export default function LabDashboard() {
               <label className="block text-sm">
                 <span className="text-slate-600">Comments</span>
                 <textarea name="comment" rows={2} className="mt-1 w-full border rounded px-3 py-2" />
+              </label>
+              <label className="block text-sm">
+                <span className="text-slate-600">Attach Result Slip (PDF / Image)</span>
+                <input type="file" name="attachment" accept="image/*,application/pdf" className="mt-1 w-full border rounded px-3 py-2 bg-white" />
               </label>
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => setActiveOrder(null)} className="px-4 py-2 text-sm text-slate-600 border rounded hover:bg-slate-50">Cancel</button>

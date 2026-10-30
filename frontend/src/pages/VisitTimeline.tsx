@@ -482,6 +482,11 @@ export default function VisitTimeline() {
                       <p>Result: <b>{l.result.value_text} {l.result.unit}</b></p>
                       <p>Flag: <b className={l.result.flag !== "normal" ? "text-red-600" : "text-emerald-600"}>{l.result.flag.toUpperCase()}</b></p>
                       {l.result.comment && <p>Comment: {l.result.comment}</p>}
+                      {l.result.attachment && (
+                        <a href={l.result.attachment} target="_blank" rel="noreferrer" className="inline-block mt-2 text-sky-600 hover:underline font-medium">
+                          View Result Attachment ↗
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>
