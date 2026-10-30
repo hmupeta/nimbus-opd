@@ -262,14 +262,14 @@ export default function VisitTimeline() {
                   const fd = new FormData(e.currentTarget);
                   const testVal = fd.get("test");
                   if (testVal === "custom") {
-                    orderLab.mutate({ custom_test_name: fd.get("custom_test_name") });
+                    orderLab.mutate({ custom_test_name: fd.get("custom_test_name"), custom_price: fd.get("custom_price") });
                   } else {
                     orderLab.mutate({ test: Number(testVal) });
                   }
                 }} className="space-y-2 bg-indigo-50 p-2 rounded border border-indigo-100">
                   <select name="test" required onChange={(e) => setCustomTest(e.target.value === "custom")} className="w-full border rounded px-2 py-1 text-xs">
                     <option value="">Select Lab Test...</option>
-                    {labs.data?.map((l: any) => <option key={l.id} value={l.id}>{l.name} ({l.code})</option>)}
+                    {labs.data?.map((l: any) => <option key={l.id} value={l.id}>{l.name} - ZMW {l.base_price}</option>)}
                     <option value="custom">+ Custom / Unlisted Test</option>
                   </select>
                   {customTest && (
@@ -288,20 +288,23 @@ export default function VisitTimeline() {
                   const fd = new FormData(e.currentTarget);
                   const examVal = fd.get("exam");
                   if (examVal === "custom") {
-                    orderRadiology.mutate({ custom_modality: fd.get("custom_modality"), custom_body_part: fd.get("custom_body_part"), notes: fd.get("notes") });
+                    orderRadiology.mutate({ custom_modality: fd.get("custom_modality"), custom_body_part: fd.get("custom_body_part"), custom_price: fd.get("custom_price"), notes: fd.get("notes") });
                   } else {
                     orderRadiology.mutate({ exam: Number(examVal), notes: fd.get("notes") });
                   }
                 }} className="space-y-2 bg-orange-50 p-2 rounded border border-orange-100">
                   <select name="exam" required onChange={(e) => setCustomRad(e.target.value === "custom")} className="w-full border rounded px-2 py-1 text-xs">
                     <option value="">Select Exam...</option>
-                    {radExams.data?.map((r: any) => <option key={r.id} value={r.id}>{r.name} ({r.modality} {r.body_part})</option>)}
+                    {radExams.data?.map((r: any) => <option key={r.id} value={r.id}>{r.name} - ZMW {r.base_price}</option>)}
                     <option value="custom">+ Custom / Unlisted Exam</option>
                   </select>
                   {customRad && (
-                    <div className="grid grid-cols-2 gap-1">
-                      <input name="custom_modality" placeholder="Modality (X-ray, CT...)" required className="w-full border rounded px-2 py-1 text-xs" />
-                      <input name="custom_body_part" placeholder="Body Part" required className="w-full border rounded px-2 py-1 text-xs" />
+                    <div className="space-y-1">
+                      <div className="grid grid-cols-2 gap-1">
+                        <input name="custom_modality" placeholder="Modality (X-ray, CT...)" required className="w-full border rounded px-2 py-1 text-xs" />
+                        <input name="custom_body_part" placeholder="Body Part" required className="w-full border rounded px-2 py-1 text-xs" />
+                      </div>
+                      <input type="number" step="0.01" name="custom_price" required placeholder="Price (ZMW)" className="w-full border rounded px-2 py-1 text-xs" />
                     </div>
                   )}
                   <input name="notes" placeholder="Clinical notes..." className="w-full border rounded px-2 py-1 text-xs" />
@@ -325,6 +328,7 @@ export default function VisitTimeline() {
                   };
                   if (medVal === "custom") {
                     payload.custom_medicine_name = fd.get("custom_medicine_name");
+                    payload.custom_price = fd.get("custom_price");
                   } else {
                     payload.medicine = Number(medVal);
                   }
@@ -332,11 +336,14 @@ export default function VisitTimeline() {
                 }} className="space-y-2 bg-emerald-50 p-2 rounded border border-emerald-100">
                   <select name="medicine" required onChange={(e) => setCustomMed(e.target.value === "custom")} className="w-full border rounded px-2 py-1 text-xs">
                     <option value="">Select Medication...</option>
-                    {meds.data?.map((m: any) => <option key={m.id} value={m.id}>{m.name} {m.strength}</option>)}
+                    {meds.data?.map((m: any) => <option key={m.id} value={m.id}>{m.name} {m.strength} - ZMW {m.base_price}</option>)}
                     <option value="custom">+ Custom / Unlisted Medicine</option>
                   </select>
                   {customMed && (
-                    <input name="custom_medicine_name" placeholder="Enter medicine name" required className="w-full border rounded px-2 py-1 text-xs" />
+                    <div className="space-y-1">
+                      <input name="custom_medicine_name" placeholder="Enter medicine name" required className="w-full border rounded px-2 py-1 text-xs" />
+                      <input type="number" step="0.01" name="custom_price" required placeholder="Price (ZMW)" className="w-full border rounded px-2 py-1 text-xs" />
+                    </div>
                   )}
                   <div className="grid grid-cols-2 gap-1">
                     <input name="dose" defaultValue="1 tab" placeholder="Dose" required className="w-full border rounded px-1 py-1 text-xs" />

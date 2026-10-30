@@ -371,11 +371,17 @@ class VisitViewSet(TenantScopedViewSet):
             desc = exam.name
             price = exam.base_price
         elif custom_modality and custom_body_part:
+            custom_price = request.data.get("custom_price", "0.00")
             modality = custom_modality
             body_part = custom_body_part
-            code = f"{modality}-{body_part}"
+            code = f"{modality}-{body_part}"[:32].upper().replace(" ", "-")
             desc = f"{modality} {body_part}"
-            price = Decimal("0.00")
+            price = Decimal(str(custom_price))
+            # Save to catalog for next time
+            RadiologyExam.objects.get_or_create(
+                tenant=visit.tenant, code=code,
+                defaults={"name": desc, "modality": modality, "body_part": body_part, "base_price": price}
+            )
         else:
             return Response({"detail": "exam or custom details are required"}, status=status.HTTP_400_BAD_REQUEST)
         
