@@ -36,6 +36,12 @@ class LabOrder(TenantAwareModel):
     collected_by = models.ForeignKey("tenants.User", on_delete=models.SET_NULL,
                                      null=True, blank=True, related_name="+")
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if hasattr(self, "order") and self.order:
+            from clinical.signals import _check_and_complete_parent_order
+            _check_and_complete_parent_order(self)
+
 
 class LabResult(TenantAwareModel):
     class Flag(models.TextChoices):

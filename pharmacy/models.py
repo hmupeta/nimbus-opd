@@ -33,6 +33,12 @@ class PharmacyOrder(TenantAwareModel):
     dispensed_at = models.DateTimeField(null=True, blank=True)
     notes = models.TextField(blank=True)
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if hasattr(self, "order") and self.order:
+            from clinical.signals import _check_and_complete_parent_order
+            _check_and_complete_parent_order(self)
+
 
 class PharmacyItem(TenantAwareModel):
     pharmacy_order = models.ForeignKey(PharmacyOrder, on_delete=models.CASCADE,

@@ -38,6 +38,12 @@ class RadiologyOrder(TenantAwareModel):
     reported_at = models.DateTimeField(null=True, blank=True)
 
 
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if hasattr(self, "order") and self.order:
+            from clinical.signals import _check_and_complete_parent_order
+            _check_and_complete_parent_order(self)
+
 
 class RadiologyExam(TenantAwareModel):
     code = models.CharField(max_length=32)
