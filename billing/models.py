@@ -172,13 +172,13 @@ class InvoiceItem(TenantAwareModel):
 
 
 
-class PaymentManager(models.Manager):
+class PaymentQuerySet(models.QuerySet):
     """Report-friendly default manager."""
     def approved(self):
         return self.filter(status='approved')
 
 class Payment(TenantAwareModel):
-    objects = PaymentManager()
+    objects = PaymentQuerySet.as_manager()
     # ── approval workflow ────────────────────────────────────────
     STATUS_CHOICES = [
         ("pending",  "Pending Approval"),
