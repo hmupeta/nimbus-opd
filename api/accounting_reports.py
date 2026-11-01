@@ -114,3 +114,75 @@ class BalanceSheetView(APIView):
             "total_equity": total_equity,
             "liabilities_and_equity": total_liab + total_equity
         })
+
+class CashFlowView(APIView):
+    permission_classes = [require_roles("admin", "accountant", "finance_manager")]
+
+    def get(self, request):
+        from billing.models import Payment, Expense, FixedAsset
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        today = timezone.now().date()
+        start_of_month = today.replace(day=1)
+        
+        # Operating Activities
+        payments_in = Payment.all_objects.filter(tenant=request.user.tenant, paid_at__date__gte=start_of_month).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+        expenses_out = Expense.all_objects.filter(tenant=request.user.tenant, date__gte=start_of_month).aggregate(s=Sum("amount"))["s"] or Decimal("0.00")
+        net_operating = payments_in - expenses_out
+        
+        # Investing Activities
+        assets_out = FixedAsset.all_objects.filter(tenant=request.user.tenant, purchase_date__gte=start_of_month).aggregate(s=Sum("purchase_cost"))["s"] or Decimal("0.00")
+        net_investing = -assets_out
+        
+        # Financing Activities (Placeholder for future equity/loans)
+        net_financing = Decimal("0.00")
+        
+        net_cash_flow = net_operating + net_investing + net_financing
+
+        return Response({
+            "period": f"{start_of_month} to {today}",
+            "operating": {
+                "payments_in": payments_in,
+                "expenses_out": -expenses_out,
+                "net": net_operating
+            },
+            "investing": {
+                "fixed_assets": -assets_out,
+                "net": net_investing
+            },
+            "financing": {
+                "net": net_financing
+            },
+            "net_cash_flow": net_cash_flow
+        })
+
+
+class ARAgingView(APIView):
+    permission_classes = [require_roles("admin", "accountant", "finance_manager")]
+
+    def get(self, request):
+        from billing.models import Invoice
+        from django.utils import timezone
+        
+        today = timezone.now().date()
+        unpaid = Invoice.all_objects.filter(
+            tenant=request.user.tenant, 
+            balance__gt=0, 
+            status__in=[Invoice.Status.ISSUED, Invoice.Status.PART_PAID]
+        )
+        
+        buckets = {"0_30": Decimal("0.00"), "31_60": Decimal("0.00"), "61_90": Decimal("0.00"), "90_plus": Decimal("0.00")}
+        
+        for inv in unpaid:
+            ref_date = inv.issued_at.date() if inv.issued_at else inv.created_at.date()
+            age = (today - ref_date).days
+            if age <= 30: buckets["0_30"] += inv.balance
+            elif age <= 60: buckets["31_60"] += inv.balance
+            elif age <= 90: buckets["61_90"] += inv.balance
+            else: buckets["90_plus"] += inv.balance
+            
+        return Response({
+            "total_outstanding": sum(buckets.values()),
+            "buckets": buckets
+        })

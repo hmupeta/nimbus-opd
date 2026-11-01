@@ -10,7 +10,7 @@ from .tokens import TenantTokenObtainPairView
 from .appointment_views import AppointmentViewSet
 from .momo_views import MobileMoneyConfigViewSet
 from .accounting_views import JournalEntryViewSet
-from .accounting_reports import TrialBalanceView, ProfitLossView, BalanceSheetView
+from .accounting_reports import TrialBalanceView, ProfitLossView, BalanceSheetView, CashFlowView, ARAgingView
 from .momo_payment_views import MomoRequestToPayView, MomoStatusCheckView, MomoCallbackView
 from .finance_views import ChartOfAccountViewSet, SupplierViewSet, BillViewSet, ExpenseViewSet, FixedAssetViewSet
 from .gateway_views import PaymentGatewayConfigViewSet
@@ -74,6 +74,8 @@ urlpatterns = [
     path('reports/trial-balance/', TrialBalanceView.as_view(), name='trial-balance'),
     path('reports/profit-loss/', ProfitLossView.as_view(), name='profit-loss'),
     path('reports/balance-sheet/', BalanceSheetView.as_view(), name='balance-sheet'),
+    path('reports/cash-flow/', CashFlowView.as_view(), name='cash-flow'),
+    path('reports/ar-aging/', ARAgingView.as_view(), name='ar-aging'),
     path('momo/request/', MomoRequestToPayView.as_view(), name='momo-request'),
     path('momo/status/<str:reference_id>/', MomoStatusCheckView.as_view(), name='momo-status'),
     path('momo/callback/', MomoCallbackView.as_view(), name='momo-callback'),
