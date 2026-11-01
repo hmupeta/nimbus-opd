@@ -18,6 +18,7 @@ import Payments from "./pages/Payments";
 import Appointments from "./pages/Appointments";
 import AuditTrail from "./pages/AuditTrail";
 import AccountingDashboard from "./pages/AccountingDashboard";
+import FinancialReports from "./pages/FinancialReports";
 import ChartOfAccounts from "./pages/ChartOfAccounts";
 import Suppliers from "./pages/Suppliers";
 import Expenses from "./pages/Expenses";
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/payments" element={<Payments />} />
           <Route path="/audit" element={<AuditTrail />} />
           <Route path="/accounting" element={<AccountingDashboard />} />
+          <Route path="/financial-reports" element={<FinancialReports />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />
           <Route path="/suppliers" element={<Suppliers />} />
           <Route path="/expenses" element={<Expenses />} />
