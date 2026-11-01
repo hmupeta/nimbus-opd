@@ -14,6 +14,7 @@ import RadiologyDashboard from "./pages/RadiologyDashboard";
 import PharmacyDashboard from "./pages/PharmacyDashboard";
 import StockDashboard from "./pages/StockDashboard";
 import BillingDashboard from "./pages/BillingDashboard";
+import Payments from "./pages/Payments";
 import Appointments from "./pages/Appointments";
 import AuditTrail from "./pages/AuditTrail";
 import AccountingDashboard from "./pages/AccountingDashboard";
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/pharmacy" element={<PharmacyDashboard />} />
           <Route path="/stock" element={<StockDashboard />} />
           <Route path="/billing" element={<BillingDashboard />} />
+          <Route path="/payments" element={<Payments />} />
           <Route path="/audit" element={<AuditTrail />} />
           <Route path="/accounting" element={<AccountingDashboard />} />
           <Route path="/chart-of-accounts" element={<ChartOfAccounts />} />

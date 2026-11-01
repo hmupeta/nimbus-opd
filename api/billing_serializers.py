@@ -35,11 +35,15 @@ class InvoiceItemSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    patient_name = serializers.CharField(source="invoice.patient.full_name", read_only=True)
+    visit_no = serializers.CharField(source="invoice.visit.visit_no", read_only=True)
+    received_by_name = serializers.CharField(source="received_by.full_name", read_only=True, default="System")
+
     class Meta:
         model = Payment
-        fields = ["id", "invoice", "amount", "method", "reference",
+        fields = ["id", "invoice", "patient_name", "visit_no", "amount", "method", "reference",
                   "mobile_money_config", "payment_gateway_config",
-                  "paid_at", "received_by", "notes"]
+                  "paid_at", "received_by", "received_by_name", "notes"]
         read_only_fields = ["id", "received_by"]
 
 
