@@ -30,8 +30,6 @@ class MobileMoneyConfigViewSet(viewsets.ModelViewSet):
         if not provider or not callback_host or not subscription_key:
             return Response({"detail": "provider, callback_host, and subscription_key are required"}, status=400)
 
-        # Create an unsaved temp config to use the MTN Service
-        from tenants.models import MobileMoneyConfig
         temp_cfg = MobileMoneyConfig(
             tenant=request.user.tenant,
             provider=provider,
@@ -41,7 +39,6 @@ class MobileMoneyConfigViewSet(viewsets.ModelViewSet):
         
         try:
             service = MTNMoMoService(temp_cfg)
-            # This now actually hits MTN to get a real UUID and API Key
             api_user, api_key = service.provision_api_user(callback_host, subscription_key)
             return Response({
                 "api_user": api_user,
@@ -50,40 +47,3 @@ class MobileMoneyConfigViewSet(viewsets.ModelViewSet):
             })
         except Exception as e:
             return Response({"detail": str(e)}, status=400)
-
-    @action(detail=True, methods=["post"], url_path="test-connection")
-    def test_connection(self, request, pk=None):
-        cfg = self.get_object()
-        
-        required = ("merchant_code", "api_user", "api_key", "api_secret", "subscription_key")
-        missing = [f for f in required if not getattr(cfg, f, "")]
-        
-        if missing:
-            cfg.last_verification_status = "failed"
-            cfg.last_verification_message = f"Missing fields: {', '.join(missing)}"
-        else:
-            try:
-                service = MTNMoMoService(cfg)
-                service._get_token()
-                cfg.last_verification_status = "ok"
-                cfg.last_verification_message = "OAuth Handshake successful."
-            except Exception as e:
-                cfg.last_verification_status = "failed"
-                cfg.last_verification_message = str(e)
-                
-        cfg.last_verified_at = timezone.now()
-        cfg.save(update_fields=[
-            "last_verified_at", "last_verification_status",
-            "last_verification_message",
-        ])
-        return Response(MobileMoneyConfigSerializer(cfg).data)
-
-    @action(detail=True, methods=["post"], url_path="set-default")
-    def set_default(self, request, pk=None):
-        cfg = self.get_object()
-        if not cfg.is_active:
-            return Response({"detail": "Config must be active."}, status=400)
-        MobileMoneyConfig.objects.filter(tenant=cfg.tenant, is_default=True).exclude(pk=cfg.pk).update(is_default=False)
-        cfg.is_default = True
-        cfg.save(update_fields=["is_default"])
-        return Response(MobileMoneyConfigSerializer(cfg).data)

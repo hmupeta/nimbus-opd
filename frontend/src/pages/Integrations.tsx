@@ -73,6 +73,10 @@ export default function Integrations() {
       setMomoApiKey(data.api_key);
       alert(data.message);
     },
+    onError: (err: any) => {
+      const msg = err.response?.data?.detail || err.message;
+      alert("Failed to generate API User from MTN: \n\n" + msg);
+    }
   });
 
   const testConnection = useMutation({
@@ -205,11 +209,9 @@ export default function Integrations() {
                 <button 
                   type="button" 
                   onClick={() => {
-                    if (!momoSubKey) {
-                      alert("Please enter the Subscription Key first.");
-                      return;
-                    }
-                    generateApiUser.mutate({ provider: momoProvider, callback_host: momoCallback, subscription_key: momoSubKey });
+                    const subKey = momoSubKey || prompt("Please enter the Subscription Key from the MTN Portal:");
+                    if (!subKey) return;
+                    generateApiUser.mutate({ provider: momoProvider, callback_host: momoCallback, subscription_key: subKey });
                   }}
                   disabled={generateApiUser.isPending || !momoCallback}
                   className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded border border-indigo-200 hover:bg-indigo-100 font-medium disabled:opacity-50"
