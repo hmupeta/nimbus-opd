@@ -8,12 +8,11 @@ class MTNMoMoService:
     def __init__(self, config: MobileMoneyConfig):
         self.config = config
         self.env = "sandbox" if config.environment == "sandbox" else "mtnzambia"
-        # For sandbox, the URL is https://sandbox.momodeveloper.mtn.com
         self.base_url = "https://sandbox.momodeveloper.mtn.com" if self.env == "sandbox" else "https://proxy.momoapi.mtn.com"
 
     def provision_api_user(self, callback_host, subscription_key):
         """Create a real API user and key on MTN Sandbox."""
-        ref_id = str(uuid.uuid4()) # MTN requires a UUID v4 for the API User
+        ref_id = str(uuid.uuid4()) 
         
         # 1. Create the API User
         url = f"{self.base_url}/v1_0/apiuser"
@@ -33,7 +32,8 @@ class MTNMoMoService:
         headers = {"Ocp-Apim-Subscription-Key": subscription_key}
         
         r = requests.post(url, headers=headers, timeout=15)
-        if r.status_code != 200:
+        # Accept both 200 OK and 201 Created
+        if r.status_code not in (200, 201):
             raise Exception(f"Failed to get API key: {r.text}")
         
         return ref_id, r.json()["apiKey"]
