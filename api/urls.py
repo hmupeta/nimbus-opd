@@ -70,7 +70,9 @@ router.register("expenses", ExpenseViewSet, basename="expense")
 router.register("fixed-assets", FixedAssetViewSet, basename="fixed-asset")
 router.register("payment-gateway-configs", PaymentGatewayConfigViewSet, basename="gateway")
 
+from api.auth_role import RoleView
 urlpatterns = [
+    path("auth/role/", RoleView.as_view(), name="auth-role"),
     path('reports/trial-balance/', TrialBalanceView.as_view(), name='trial-balance'),
     path('reports/profit-loss/', ProfitLossView.as_view(), name='profit-loss'),
     path('reports/balance-sheet/', BalanceSheetView.as_view(), name='balance-sheet'),

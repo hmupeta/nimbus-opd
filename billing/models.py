@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.conf import settings
 from django.utils import timezone
 
 from common.models import TenantAwareModel
@@ -169,7 +170,31 @@ class InvoiceItem(TenantAwareModel):
         return f"{self.description} × {self.quantity}"
 
 
+
+
+class PaymentManager(models.Manager):
+    """Report-friendly default manager."""
+    def approved(self):
+        return self.filter(status='approved')
+
 class Payment(TenantAwareModel):
+    objects = PaymentManager()
+    # ── approval workflow ────────────────────────────────────────
+    STATUS_CHOICES = [
+        ("pending",  "Pending Approval"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+    ]
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES,
+                              default="approved", db_index=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.SET_NULL,
+                                   related_name="payments_created")
+    approved_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL,
+                                    related_name="payments_approved")
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, default="")
     class Method(models.TextChoices):
         CASH           = "cash", "Cash"
         CARD           = "card", "Card"
