@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     "visits",
     "appointments",
     "vitals",
-    "clinical",
+    "clinical.apps.ClinicalConfig",
     "lab",
     "radiology",
     "pharmacy",

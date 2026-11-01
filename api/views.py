@@ -503,6 +503,10 @@ class LabOrderViewSet(TenantScopedViewSet):
         lo.completed_at = timezone.now()
         lo.save(update_fields=["status", "completed_at"])
         
+        # Update the parent Order status
+        lo.order.status = Order.Status.COMPLETED
+        lo.order.save(update_fields=["status"])
+        
         return Response(LabResultSerializer(result).data, status=status.HTTP_200_OK)
 
 
