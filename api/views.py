@@ -457,7 +457,7 @@ class LabTestViewSet(TenantScopedViewSet):
     serializer_class = LabTestSerializer
     def get_queryset(self):
         return LabTest.objects.all().order_by('-id')
-    permission_classes = [require_roles("admin", "lab")]
+    permission_classes = [require_roles("admin", "lab", "doctor", "nurse")]
 
 
 class LabOrderViewSet(TenantScopedViewSet):
@@ -541,7 +541,7 @@ class RadiologyOrderViewSet(TenantScopedViewSet):
     permission_classes = [require_roles("admin", "radiology", "doctor")]
 
     @action(detail=True, methods=["post"],
-            permission_classes=[require_roles("admin", "radiology")])
+            permission_classes = [require_roles("admin", "radiology", "doctor", "nurse")])
     def report(self, request, pk=None):
         ro = self.get_object()
         # request.data handles both JSON and multipart/form-data (files)
@@ -565,7 +565,7 @@ class MedicineViewSet(TenantScopedViewSet):
     serializer_class = MedicineSerializer
     def get_queryset(self):
         return Medicine.objects.all().order_by('-id')
-    permission_classes = [require_roles("admin", "pharmacist")]
+    permission_classes = [require_roles("admin", "pharmacist", "doctor", "nurse")]
 
 
 class PharmacyOrderViewSet(TenantScopedViewSet):
