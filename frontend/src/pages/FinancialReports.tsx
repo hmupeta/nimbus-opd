@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { exportToPDF, exportToExcel } from "../utils/export";
+import { FileSpreadsheet, FileText } from "lucide-react";
 
 export default function FinancialReports() {
-  const [tab, setTab] = useState<"pl" | "bs" | "tb" | "cf" | "ar">("pl");
+  const [tab, setTab] = useState<"pl" | "bs" | "cf" | "ar" | "tb">("pl");
 
   const pl = useQuery({ queryKey: ["report-pl"], queryFn: async () => (await api.get("/reports/profit-loss/")).data });
   const bs = useQuery({ queryKey: ["report-bs"], queryFn: async () => (await api.get("/reports/balance-sheet/")).data });
@@ -11,11 +13,111 @@ export default function FinancialReports() {
   const cf = useQuery({ queryKey: ["report-cf"], queryFn: async () => (await api.get("/reports/cash-flow/")).data });
   const ar = useQuery({ queryKey: ["report-ar"], queryFn: async () => (await api.get("/reports/ar-aging/")).data });
 
+  // --- Export Handlers ---
+  const handleExportPL = (type: "pdf" | "excel") => {
+    if (!pl.data) return;
+    const rows = [
+      ["Revenue", ""],
+      ...pl.data.revenues.map((r: any) => [r.name, r.amount]),
+      ["Total Revenue", pl.data.total_revenue],
+      ["", ""],
+      ["Expenses", ""],
+      ...pl.data.expenses.map((e: any) => [e.name, e.amount]),
+      ["Total Expenses", pl.data.total_expense],
+      ["", ""],
+      ["Net Profit / (Loss)", pl.data.net_profit]
+    ];
+    if (type === "pdf") exportToPDF("Profit & Loss", ["Account", "Amount (ZMW)"], rows);
+    else exportToExcel("Profit & Loss", ["Account", "Amount (ZMW)"], rows);
+  };
+
+  const handleExportBS = (type: "pdf" | "excel") => {
+    if (!bs.data) return;
+    const rows = [
+      ["Assets", ""],
+      ...bs.data.assets.map((a: any) => [a.name, a.balance]),
+      ["Total Assets", bs.data.total_assets],
+      ["", ""],
+      ["Liabilities & Equity", ""],
+      ...bs.data.liabilities.map((l: any) => [l.name, l.balance]),
+      ...bs.data.equity.map((e: any) => [e.name, e.balance]),
+      ["Total Liabilities & Equity", bs.data.liabilities_and_equity]
+    ];
+    if (type === "pdf") exportToPDF("Balance Sheet", ["Account", "Balance (ZMW)"], rows);
+    else exportToExcel("Balance Sheet", ["Account", "Balance (ZMW)"], rows);
+  };
+
+  const handleExportCF = (type: "pdf" | "excel") => {
+    if (!cf.data) return;
+    const rows = [
+      ["Operating Activities", ""],
+      ["Cash received from patients", cf.data.operating.payments_in],
+      ["Cash paid for expenses", cf.data.operating.expenses_out],
+      ["Net Cash from Operations", cf.data.operating.net],
+      ["", ""],
+      ["Investing Activities", ""],
+      ["Purchase of Fixed Assets", cf.data.investing.fixed_assets],
+      ["Net Cash from Investing", cf.data.investing.net],
+      ["", ""],
+      ["Net Increase / (Decrease) in Cash", cf.data.net_cash_flow]
+    ];
+    if (type === "pdf") exportToPDF("Cash Flow Statement", ["Item", "Amount (ZMW)"], rows);
+    else exportToExcel("Cash Flow Statement", ["Item", "Amount (ZMW)"], rows);
+  };
+
+  const handleExportAR = (type: "pdf" | "excel") => {
+    if (!ar.data) return;
+    const rows = [
+      ["Current (0-30 days)", ar.data.buckets["0_30"]],
+      ["31-60 Days", ar.data.buckets["31_60"]],
+      ["61-90 Days", ar.data.buckets["61_90"]],
+      ["90+ Days (High Risk)", ar.data.buckets["90_plus"]],
+      ["", ""],
+      ["Total Outstanding", ar.data.total_outstanding]
+    ];
+    if (type === "pdf") exportToPDF("AR Aging", ["Bucket", "Amount (ZMW)"], rows);
+    else exportToExcel("AR Aging", ["Bucket", "Amount (ZMW)"], rows);
+  };
+
+  const handleExportTB = (type: "pdf" | "excel") => {
+    if (!tb.data) return;
+    const rows = tb.data.accounts.map((a: any) => [a.code, a.name, a.debit, a.credit]);
+    rows.push(["", "Totals", tb.data.total_debit, tb.data.total_credit]);
+    if (type === "pdf") exportToPDF("Trial Balance", ["Code", "Account", "Debit", "Credit"], rows);
+    else exportToExcel("Trial Balance", ["Code", "Account", "Debit", "Credit"], rows);
+  };
+
+  // Helper to render export buttons based on active tab
+  const renderExportButtons = () => {
+    let handler: ((t: "pdf" | "excel") => void) | null = null;
+    if (tab === "pl") handler = handleExportPL;
+    if (tab === "bs") handler = handleExportBS;
+    if (tab === "cf") handler = handleExportCF;
+    if (tab === "ar") handler = handleExportAR;
+    if (tab === "tb") handler = handleExportTB;
+    
+    if (!handler) return null;
+
+    return (
+      <div className="flex gap-2">
+        <button onClick={() => handler("excel")} className="flex items-center gap-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition">
+          <FileSpreadsheet size={16} /> Excel
+        </button>
+        <button onClick={() => handler("pdf")} className="flex items-center gap-2 text-sm font-medium text-red-700 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg border border-red-200 transition">
+          <FileText size={16} /> PDF
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-5xl">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-800">Financial Reports</h1>
-        <p className="text-sm text-slate-500 mt-1">IFRS-aligned financial statements.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-800">Financial Reports</h1>
+          <p className="text-sm text-slate-500 mt-1">IFRS-aligned financial statements.</p>
+        </div>
+        {renderExportButtons()}
       </div>
 
       <div className="flex gap-4 border-b overflow-x-auto">
@@ -102,12 +204,10 @@ export default function FinancialReports() {
         <div className="bg-white border rounded-xl p-8 shadow-sm max-w-2xl mx-auto">
           <h2 className="text-xl font-bold text-center mb-2">Accounts Receivable Aging</h2>
           <p className="text-center text-sm text-slate-500 mb-6">Outstanding balances by age</p>
-          
           <div className="flex justify-between font-bold text-lg border-b pb-4 mb-4">
             <span>Total Outstanding</span>
             <span className="text-red-600">ZMW {ar.data.total_outstanding}</span>
           </div>
-
           <ul className="space-y-3 text-sm">
             <li className="flex justify-between bg-slate-50 p-3 rounded"><span>Current (0-30 days)</span><span className="font-medium">ZMW {ar.data.buckets["0_30"]}</span></li>
             <li className="flex justify-between bg-amber-50 p-3 rounded"><span>31-60 Days</span><span className="font-medium text-amber-700">ZMW {ar.data.buckets["31_60"]}</span></li>

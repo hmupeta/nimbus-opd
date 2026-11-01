@@ -119,7 +119,8 @@ class CashFlowView(APIView):
     permission_classes = [require_roles("admin", "accountant", "finance_manager")]
 
     def get(self, request):
-        from billing.models import Payment, Expense, FixedAsset
+        from billing.models import Payment
+        from accounting.models import Expense, FixedAsset
         from django.utils import timezone
         from datetime import timedelta
         
