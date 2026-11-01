@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Paginated } from "../api/types";
@@ -6,7 +6,6 @@ import type { Paginated } from "../api/types";
 export default function BillingDashboard() {
   const qc = useQueryClient();
   const [selectedVisit, setSelectedVisit] = useState<number | null>(null);
-  const [selectedVisitStatus, setSelectedVisitStatus] = useState<string | null>(null);
 
   const visits = useQuery({
     queryKey: ["billing-visits"],
@@ -28,26 +27,12 @@ export default function BillingDashboard() {
       return data;
     },
     onSuccess: (data: any) => {
+      // Inject the invoice directly into the cache to stop UI flickering
       if (data && data.id) {
         qc.setQueryData(["invoice", selectedVisit], data);
       }
-      qc.invalidateQueries({ queryKey: ["invoice"] });
-      qc.invalidateQueries({ queryKey: ["billing-visits"] });
     },
   });
-
-  // Auto-generate invoice if it's missing and the visit is closed
-  useEffect(() => {
-    if (
-      selectedVisit &&
-      selectedVisitStatus === "closed" &&
-      invoice.isSuccess &&
-      invoice.data === null &&
-      !generateInvoice.isPending
-    ) {
-      generateInvoice.mutate(selectedVisit);
-    }
-  }, [selectedVisit, selectedVisitStatus, invoice.isSuccess, invoice.data, generateInvoice.isPending]);
 
   const recordPayment = useMutation({
     mutationFn: async (payload: any) => {
@@ -83,10 +68,7 @@ export default function BillingDashboard() {
             {visits.data?.results.map((v: any) => (
               <li key={v.id}>
                 <button 
-                  onClick={() => {
-                    setSelectedVisit(v.id);
-                    setSelectedVisitStatus(v.status);
-                  }} 
+                  onClick={() => setSelectedVisit(v.id)} 
                   className={`w-full text-left px-4 py-3 hover:bg-slate-50 ${selectedVisit === v.id ? "bg-sky-50 border-l-4 border-sky-500" : ""}`}
                 >
                   <p className="font-medium text-slate-800">{v.patient_name}</p>
@@ -104,16 +86,22 @@ export default function BillingDashboard() {
         <div className="bg-white border rounded-lg p-6 shadow-sm min-h-[400px]">
           {!selectedVisit ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-slate-400 text-sm">Select a visit to view or generate the bill.</p>
+              <p className="text-slate-400 text-sm">Select a visit to view the bill.</p>
             </div>
-          ) : invoice.isLoading || generateInvoice.isPending ? (
-            <div className="flex h-full items-center justify-center flex-col">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mb-4"></div>
-              <p className="text-slate-500 text-sm">Generating invoice...</p>
+          ) : invoice.isLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-slate-500 text-sm">Loading invoice...</p>
             </div>
           ) : !invoice.data ? (
-            <div className="flex h-full items-center justify-center text-center">
-              <p className="text-red-500 text-sm">Could not find or generate an invoice for this visit.</p>
+            <div className="flex flex-col h-full items-center justify-center text-center">
+              <p className="text-slate-500 text-sm mb-4">No invoice found for this visit.</p>
+              <button 
+                onClick={() => generateInvoice.mutate(selectedVisit)} 
+                disabled={generateInvoice.isPending}
+                className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700"
+              >
+                {generateInvoice.isPending ? "Generating..." : "Generate Invoice"}
+              </button>
             </div>
           ) : (
             <div>
@@ -149,8 +137,7 @@ export default function BillingDashboard() {
                 <span>ZMW {invoice.data.balance}</span>
               </div>
 
-              {/* Only show payment form if there is a balance */}
-              {invoice.data.balance > 0 ? (
+              {invoice.data.balance > 0 && (
                 <form onSubmit={onPayment} className="mt-8 border-t pt-6 space-y-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-lg">
                   <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Record Payment</h3>
                   <div className="grid grid-cols-2 gap-3">
@@ -176,11 +163,6 @@ export default function BillingDashboard() {
                     {recordPayment.isPending ? "Processing..." : "Complete Payment"}
                   </button>
                 </form>
-              ) : (
-                <div className="mt-8 text-center bg-emerald-50 text-emerald-700 p-4 rounded-lg border border-emerald-200">
-                  <p className="font-bold text-lg">Fully Paid</p>
-                  <p className="text-sm">This invoice has a zero balance.</p>
-                </div>
               )}
             </div>
           )}
