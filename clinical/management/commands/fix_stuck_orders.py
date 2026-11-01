@@ -1,10 +1,10 @@
 from django.core.management.base import BaseCommand
-from django.db import connection
 from tenants.models import Tenant
 from clinical.models import Order
-from lab.models import LabOrder, LabResult
+from lab.models import LabOrder
 from radiology.models import RadiologyOrder
 from pharmacy.models import PharmacyOrder
+from common.context import db_tenant_context
 
 
 class Command(BaseCommand):
@@ -14,49 +14,38 @@ class Command(BaseCommand):
         total_fixed = 0
 
         for tenant in Tenant.objects.all():
-            # Bypass RLS: we are running as a maintenance task
-            with connection.cursor() as cur:
-                cur.execute(
-                    "SELECT set_config('app.tenant_id', %s, true)",
-                    [str(tenant.id)],
+            # Use the proper context manager so RLS lets us see the orders
+            with db_tenant_context(tenant):
+                pending = Order.all_objects.filter(
+                    tenant=tenant,
+                    status__in=[Order.Status.PENDING, Order.Status.IN_PROGRESS],
                 )
 
-            pending = Order.all_objects.filter(
-                tenant=tenant,
-                status__in=[Order.Status.PENDING, Order.Status.IN_PROGRESS],
-            )
+                for order in pending:
+                    should_complete = False
 
-            for order in pending:
-                should_complete = False
+                    if order.kind == Order.Kind.LAB:
+                        subs = LabOrder.all_objects.filter(order=order)
+                        if subs.exists() and all(s.status in ["completed", "cancelled"] for s in subs):
+                            should_complete = True
 
-                if order.kind == Order.Kind.LAB:
-                    subs = LabOrder.all_objects.filter(order=order)
-                    if subs.exists() and all(
-                        s.status in ["completed", "cancelled"] for s in subs
-                    ):
-                        should_complete = True
+                    elif order.kind == Order.Kind.RADIOLOGY:
+                        subs = RadiologyOrder.all_objects.filter(order=order)
+                        if subs.exists() and all(s.status in ["reported", "cancelled"] for s in subs):
+                            should_complete = True
 
-                elif order.kind == Order.Kind.RADIOLOGY:
-                    subs = RadiologyOrder.all_objects.filter(order=order)
-                    if subs.exists() and all(
-                        s.status in ["reported", "cancelled"] for s in subs
-                    ):
-                        should_complete = True
+                    elif order.kind == Order.Kind.PHARMACY:
+                        subs = PharmacyOrder.all_objects.filter(order=order)
+                        if subs.exists() and all(s.status in ["dispensed", "cancelled"] for s in subs):
+                            should_complete = True
 
-                elif order.kind == Order.Kind.PHARMACY:
-                    subs = PharmacyOrder.all_objects.filter(order=order)
-                    if subs.exists() and all(
-                        s.status in ["dispensed", "cancelled"] for s in subs
-                    ):
-                        should_complete = True
-
-                if should_complete:
-                    order.status = Order.Status.COMPLETED
-                    order.save(update_fields=["status"])
-                    total_fixed += 1
-                    self.stdout.write(
-                        f"  [FIXED] {tenant.code}: Order #{order.id} ({order.kind})"
-                    )
+                    if should_complete:
+                        order.status = Order.Status.COMPLETED
+                        order.save(update_fields=["status"])
+                        total_fixed += 1
+                        self.stdout.write(
+                            f"  [FIXED] {tenant.code}: Order #{order.id} ({order.kind})"
+                        )
 
         self.stdout.write(self.style.SUCCESS(
             f"fix_stuck_orders: {total_fixed} order(s) completed."))
