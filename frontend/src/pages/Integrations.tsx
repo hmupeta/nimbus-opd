@@ -222,7 +222,12 @@ export default function Integrations() {
                 <input value={momoApiUser} readOnly className="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500" placeholder="Click Generate above" />
               </label>
               <label className="text-sm"><span className="text-slate-600">API Key</span>
-                <input value={momoApiKey} readOnly className="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500" placeholder={editMomoId ? "(Leave blank to keep current)" : "Click Generate above"} />
+                <input 
+                  value={momoApiKey} 
+                  readOnly 
+                  className="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500 font-mono text-xs" 
+                  placeholder={editMomoId ? "(Leave blank to keep current)" : "Click Generate above"} 
+                />
               </label>
               <label className="text-sm"><span className="text-red-500 font-medium">API Secret {!editMomoId && "*"}</span><input name="api_secret" required={!editMomoId} className="mt-1 w-full border rounded-lg px-3 py-2" placeholder={editMomoId ? "(Leave blank to keep current)" : ""} /></label>
               <label className="text-sm"><span className="text-red-500 font-medium">Subscription Key {!editMomoId && "*"}</span><input value={momoSubKey} onChange={e => setMomoSubKey(e.target.value)} required={!editMomoId} className="mt-1 w-full border rounded-lg px-3 py-2" placeholder={editMomoId ? "(Leave blank to keep current)" : "Ocp-Apim-Subscription-Key from MTN Portal"} /></label>
