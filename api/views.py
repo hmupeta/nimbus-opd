@@ -641,3 +641,34 @@ class StockMovementViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return StockMovement.objects.all().order_by('-id')
     permission_classes = [require_roles("admin", "pharmacist")]
+
+
+class InvoiceViewSet(viewsets.ModelViewSet):
+    serializer_class = InvoiceSerializer
+    permission_classes = [require_roles("admin", "receptionist", "doctor")]
+
+    def get_queryset(self):
+        # Use Invoice.objects (TenantManager) which handles tenant context automatically
+        qs = Invoice.objects.all().order_by("-id")
+        for field in ("status", "visit", "patient"):
+            val = self.request.query_params.get(field)
+            if val:
+                qs = qs.filter(**{field: val})
+        return qs
+
+    @action(detail=True, methods=["post"])
+    def issue(self, request, pk=None):
+        inv = self.get_object()
+        if inv.status != Invoice.Status.DRAFT:
+            return Response({"detail": "Only drafts can be issued"},
+                            status=status.HTTP_409_CONFLICT)
+        inv.issued_at = timezone.now()
+        inv.status = Invoice.Status.ISSUED
+        inv.save(update_fields=["issued_at", "status"])
+        return Response(InvoiceSerializer(inv).data)
+
+    @action(detail=True, methods=["post"])
+    def recalculate(self, request, pk=None):
+        inv = self.get_object()
+        inv.recalculate()
+        return Response(InvoiceSerializer(inv).data)
