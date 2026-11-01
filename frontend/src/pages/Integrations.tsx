@@ -64,7 +64,7 @@ export default function Integrations() {
   });
 
   const generateApiUser = useMutation({
-    mutationFn: async (payload: { provider: string, callback_host: string }) => {
+    mutationFn: async (payload: { provider: string, callback_host: string, subscription_key: string }) => {
       const { data } = await api.post("/mobile-money-configs/create-api-user/", payload);
       return data;
     },
@@ -204,7 +204,13 @@ export default function Integrations() {
                 <div className="text-sm font-semibold text-slate-700">API Credentials</div>
                 <button 
                   type="button" 
-                  onClick={() => generateApiUser.mutate({ provider: momoProvider, callback_host: momoCallback })}
+                  onClick={() => {
+                    if (!momoSubKey) {
+                      alert("Please enter the Subscription Key first.");
+                      return;
+                    }
+                    generateApiUser.mutate({ provider: momoProvider, callback_host: momoCallback, subscription_key: momoSubKey });
+                  }}
                   disabled={generateApiUser.isPending || !momoCallback}
                   className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded border border-indigo-200 hover:bg-indigo-100 font-medium disabled:opacity-50"
                 >
