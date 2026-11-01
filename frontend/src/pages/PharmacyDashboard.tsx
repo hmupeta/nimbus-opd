@@ -8,7 +8,6 @@ export default function PharmacyDashboard() {
   const { data, isLoading } = useQuery({
     queryKey: ["pharmacy-orders"],
     queryFn: async () => {
-      // Fetch both pending and dispensed so we have a full history
       const pending = await api.get<Paginated<any>>("/pharmacy-orders/?status=pending");
       const dispensed = await api.get<Paginated<any>>("/pharmacy-orders/?status=dispensed");
       return [...pending.data.results, ...dispensed.data.results];
@@ -20,6 +19,13 @@ export default function PharmacyDashboard() {
       await api.post(`/pharmacy-orders/${id}/dispense/`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["pharmacy-orders"] }),
+    onError: (error: any) => {
+      // Show the exact reason (e.g., "Insufficient stock for PARA500")
+      const msg = error.response?.data?.detail || "Failed to dispense medication.";
+      alert(`Dispense Failed:
+
+${msg}`);
+    }
   });
 
   return (
