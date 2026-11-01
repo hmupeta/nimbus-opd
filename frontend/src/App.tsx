@@ -14,6 +14,7 @@ import RadiologyDashboard from "./pages/RadiologyDashboard";
 import PharmacyDashboard from "./pages/PharmacyDashboard";
 import StockDashboard from "./pages/StockDashboard";
 import BillingDashboard from "./pages/BillingDashboard";
+import Payments from "./pages/Payments";
 import Appointments from "./pages/Appointments";
 import AuditTrail from "./pages/AuditTrail";
 import MISReports from "./pages/MISReports";
@@ -29,7 +30,7 @@ import Suppliers from "./pages/Suppliers";
 import Expenses from "./pages/Expenses";
 import FixedAssets from "./pages/FixedAssets";
 import AccountsPayable from "./pages/AccountsPayable";
-import Payments from "./pages/Payments";
+import Integrations from "./pages/Integrations";
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/fixed-assets" element={<FixedAssets />} />
           <Route path="/accounts-payable" element={<AccountsPayable />} />
+          <Route path="/integrations" element={<Integrations />} />
           
           <Route path="/audit" element={<AuditTrail />} />
           <Route path="/reports" element={<MISReports />} />
@@ -68,7 +70,6 @@ export default function App() {
           <Route path="/lab-catalog" element={<LabCatalog />} />
           <Route path="/radiology-catalog" element={<RadiologyCatalog />} />
           <Route path="/pharmacy-catalog" element={<PharmacyCatalog />} />
-          <Route path="/integrations" element={<Integrations />} />
           <Route path="/platform" element={<PlatformAdminDashboard />} />
         </Route>
       </Route>
