@@ -10,6 +10,7 @@ from .tokens import TenantTokenObtainPairView
 from .appointment_views import AppointmentViewSet
 from .momo_views import MobileMoneyConfigViewSet
 from .accounting_views import JournalEntryViewSet
+from .momo_payment_views import MomoRequestToPayView, MomoStatusCheckView, MomoCallbackView
 from .finance_views import ChartOfAccountViewSet, SupplierViewSet, BillViewSet, ExpenseViewSet, FixedAssetViewSet
 from .gateway_views import PaymentGatewayConfigViewSet
 from .billing_views import (
@@ -69,6 +70,9 @@ router.register("fixed-assets", FixedAssetViewSet, basename="fixed-asset")
 router.register("payment-gateway-configs", PaymentGatewayConfigViewSet, basename="gateway")
 
 urlpatterns = [
+    path('momo/request/', MomoRequestToPayView.as_view(), name='momo-request'),
+    path('momo/status/<str:reference_id>/', MomoStatusCheckView.as_view(), name='momo-status'),
+    path('momo/callback/', MomoCallbackView.as_view(), name='momo-callback'),
     path('analytics/trend/', AnalyticsTrendView.as_view(), name='analytics-trend'),
     path('analytics/z-report/', ZReportView.as_view(), name='z-report'),
 

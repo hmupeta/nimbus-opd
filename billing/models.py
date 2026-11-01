@@ -268,3 +268,6 @@ class InsuranceClaim(TenantAwareModel):
 
     def __str__(self):
         return f"{self.claim_no} – {self.get_status_display()}"
+
+
+from .momo_models import MomoTransaction

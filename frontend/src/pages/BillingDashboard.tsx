@@ -6,6 +6,10 @@ import type { Paginated } from "../api/types";
 export default function BillingDashboard() {
   const qc = useQueryClient();
   const [selectedVisit, setSelectedVisit] = useState<number | null>(null);
+  const [momoInvoice, setMomoInvoice] = useState<number | null>(null);
+  const [momoRef, setMomoRef] = useState<string | null>(null);
+  const [momoPolling, setMomoPolling] = useState(false);
+  const [momoPhone, setMomoPhone] = useState('');
 
   const zReport = useQuery({
     queryKey: ["z-report"],
@@ -51,6 +55,37 @@ export default function BillingDashboard() {
       // Notice we removed `qc.invalidateQueries({ queryKey: ["invoice"] })` 
       // to prevent the background refetch from overwriting our new data with an empty array.
     },
+  });
+
+  const requestMomo = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data } = await api.post("/momo/request/", payload);
+      return data;
+    },
+    onSuccess: (data) => {
+      setMomoRef(data.reference_id);
+      setMomoPolling(true);
+      // Start polling every 3 seconds
+      const interval = setInterval(async () => {
+        try {
+          const { data: statusData } = await api.get(`/momo/status/${data.reference_id}/`);
+          if (statusData.status === "SUCCESSFUL") {
+            clearInterval(interval);
+            setMomoPolling(false);
+            setMomoInvoice(null);
+            qc.invalidateQueries({ queryKey: ["invoice"] });
+            qc.invalidateQueries({ queryKey: ["billing-visits"] });
+            alert("Payment Successful!");
+          } else if (statusData.status === "FAILED") {
+            clearInterval(interval);
+            setMomoPolling(false);
+            alert("Payment Failed.");
+          }
+        } catch (e) {
+          console.error("Polling error", e);
+        }
+      }, 3000);
+    }
   });
 
   const recordPayment = useMutation({
@@ -233,7 +268,21 @@ export default function BillingDashboard() {
                     <input name="reference" className="w-full mt-1 border rounded px-2 py-1.5" />
                   </label>
                   <button type="submit" disabled={recordPayment.isPending} className="w-full bg-emerald-600 text-white py-2 rounded text-sm font-medium hover:bg-emerald-700">
-                    {recordPayment.isPending ? "Processing..." : "Complete Payment"}
+                    {recordPayment.isPending ? "Processing..." : "Complete Cash/Card Payment"}
+                  </button>
+                  
+                  <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-slate-200"></div>
+                    <span className="flex-shrink-0 mx-4 text-slate-400 text-xs uppercase font-medium">Or</span>
+                    <div className="flex-grow border-t border-slate-200"></div>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setMomoInvoice(invoice.data.id)}
+                    className="w-full bg-amber-400 text-amber-900 py-2 rounded text-sm font-bold hover:bg-amber-500"
+                  >
+                    Request MTN MoMo Payment
                   </button>
                 </form>
               )}
@@ -241,6 +290,36 @@ export default function BillingDashboard() {
           )}
         </div>
       </div>
+
+      {momoInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+            <h3 className="text-lg font-bold mb-4">MTN MoMo Payment</h3>
+            {!momoRef ? (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                requestMomo.mutate({ invoice_id: momoInvoice, phone_number: momoPhone, config_id: 1 }); // Using config_id 1 for demo
+              }}>
+                <label className="block text-sm mb-4">
+                  <span className="text-slate-600">Customer Phone Number</span>
+                  <input value={momoPhone} onChange={e => setMomoPhone(e.target.value)} required placeholder="260966123456" className="mt-1 w-full border rounded px-3 py-2" />
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setMomoInvoice(null)} className="px-4 py-2 text-slate-600">Cancel</button>
+                  <button type="submit" disabled={requestMomo.isPending} className="px-4 py-2 bg-amber-500 text-white rounded font-bold">Send Request</button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mx-auto mb-4"></div>
+                <p className="text-slate-600">Waiting for customer to approve on their phone...</p>
+                <p className="text-xs text-slate-400 mt-2">Ref: {momoRef}</p>
+                <button onClick={() => { setMomoInvoice(null); setMomoRef(null); setMomoPolling(false); }} className="mt-6 text-slate-500 underline">Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
