@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import type { Paginated } from "../api/types";
@@ -6,25 +6,7 @@ import type { Paginated } from "../api/types";
 export default function BillingDashboard() {
   const qc = useQueryClient();
   const [selectedVisit, setSelectedVisit] = useState<number | null>(null);
-  const [momoInvoice, setMomoInvoice] = useState<number | null>(null);
-  const [momoRef, setMomoRef] = useState<string | null>(null);
-  const [momoPolling, setMomoPolling] = useState(false);
-  const [momoPhone, setMomoPhone] = useState('');
-
-  const zReport = useQuery({
-    queryKey: ["z-report"],
-    queryFn: async () => (await api.get("/analytics/z-report/")).data,
-  });
-
-  const momoConfigs = useQuery({
-    queryKey: ["momo-configs-active"],
-    queryFn: async () => (await api.get<Paginated<any>>("/mobile-money-configs/?is_active=true")).data.results,
-  });
-
-  const gatewayConfigs = useQuery({
-    queryKey: ["gateway-configs-active"],
-    queryFn: async () => (await api.get<Paginated<any>>("/payment-gateway-configs/?is_active=true")).data.results,
-  });
+  const [selectedVisitStatus, setSelectedVisitStatus] = useState<string | null>(null);
 
   const visits = useQuery({
     queryKey: ["billing-visits"],
@@ -46,47 +28,26 @@ export default function BillingDashboard() {
       return data;
     },
     onSuccess: (data: any) => {
-      // Inject the invoice directly into the React Query cache to render immediately
       if (data && data.id) {
         qc.setQueryData(["invoice", selectedVisit], data);
       }
-      // Refresh the list of closed visits (to update any invoice indicators)
+      qc.invalidateQueries({ queryKey: ["invoice"] });
       qc.invalidateQueries({ queryKey: ["billing-visits"] });
-      // Notice we removed `qc.invalidateQueries({ queryKey: ["invoice"] })` 
-      // to prevent the background refetch from overwriting our new data with an empty array.
     },
   });
 
-  const requestMomo = useMutation({
-    mutationFn: async (payload: any) => {
-      const { data } = await api.post("/momo/request/", payload);
-      return data;
-    },
-    onSuccess: (data) => {
-      setMomoRef(data.reference_id);
-      setMomoPolling(true);
-      // Start polling every 3 seconds
-      const interval = setInterval(async () => {
-        try {
-          const { data: statusData } = await api.get(`/momo/status/${data.reference_id}/`);
-          if (statusData.status === "SUCCESSFUL") {
-            clearInterval(interval);
-            setMomoPolling(false);
-            setMomoInvoice(null);
-            qc.invalidateQueries({ queryKey: ["invoice"] });
-            qc.invalidateQueries({ queryKey: ["billing-visits"] });
-            alert("Payment Successful!");
-          } else if (statusData.status === "FAILED") {
-            clearInterval(interval);
-            setMomoPolling(false);
-            alert("Payment Failed.");
-          }
-        } catch (e) {
-          console.error("Polling error", e);
-        }
-      }, 3000);
+  // Auto-generate invoice if it's missing and the visit is closed
+  useEffect(() => {
+    if (
+      selectedVisit &&
+      selectedVisitStatus === "closed" &&
+      invoice.isSuccess &&
+      invoice.data === null &&
+      !generateInvoice.isPending
+    ) {
+      generateInvoice.mutate(selectedVisit);
     }
-  });
+  }, [selectedVisit, selectedVisitStatus, invoice.isSuccess, invoice.data, generateInvoice.isPending]);
 
   const recordPayment = useMutation({
     mutationFn: async (payload: any) => {
@@ -102,82 +63,75 @@ export default function BillingDashboard() {
     e.preventDefault();
     if (!invoice.data) return;
     const fd = new FormData(e.currentTarget);
-    const methodVal = String(fd.get("method"));
-    
-    // Parse out the config ID if the method uses one (e.g., "mobile_money:1")
-    const [method, configIdStr] = methodVal.split(":");
-    const configId = configIdStr ? parseInt(configIdStr) : null;
-
-    const payload: any = {
+    recordPayment.mutate({
       invoice: invoice.data.id,
       amount: String(fd.get("amount")),
-      method: method,
+      method: String(fd.get("method")),
       reference: String(fd.get("reference") || ""),
-    };
-
-    if (method === "mobile_money" && configId) {
-      payload.mobile_money_config = configId;
-    } else if ((method === "card" || method === "stripe" || method === "paypal") && configId) {
-      payload.payment_gateway_config = configId;
-    }
-
-    recordPayment.mutate(payload);
+    });
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-start">
-        <h1 className="text-2xl font-semibold">Reception / Billing</h1>
-        
-        {zReport.data && (
-          <div className="bg-white border rounded-lg px-4 py-3 shadow-sm text-sm">
-            <span className="text-slate-500 font-medium">My Shift ({zReport.data.date}): </span>
-            <span className="font-bold text-emerald-600 ml-1">ZMW {zReport.data.total_collected}</span>
-            <span className="text-xs text-slate-400 ml-2">({zReport.data.summary.length} transactions)</span>
-          </div>
-        )}
-      </div>
+    <div className="space-y-6 max-w-5xl">
+      <h1 className="text-2xl font-semibold text-slate-800">Reception / Billing</h1>
       
       <div className="grid md:grid-cols-2 gap-6">
         {/* Visit List */}
-        <div className="bg-white border rounded-lg overflow-hidden h-fit">
-          <div className="bg-slate-50 px-4 py-2 border-b text-sm font-semibold text-slate-600">Ready for Billing (Closed Visits)</div>
+        <div className="bg-white border rounded-lg overflow-hidden h-fit shadow-sm">
+          <div className="bg-slate-50 px-4 py-3 border-b text-sm font-semibold text-slate-600">Ready for Billing (Closed Visits)</div>
           <ul className="divide-y text-sm">
             {visits.data?.results.map((v: any) => (
               <li key={v.id}>
-                <button onClick={() => setSelectedVisit(v.id)} className={`w-full text-left px-4 py-3 hover:bg-slate-50 ${selectedVisit === v.id ? "bg-sky-50" : ""}`}>
+                <button 
+                  onClick={() => {
+                    setSelectedVisit(v.id);
+                    setSelectedVisitStatus(v.status);
+                  }} 
+                  className={`w-full text-left px-4 py-3 hover:bg-slate-50 ${selectedVisit === v.id ? "bg-sky-50 border-l-4 border-sky-500" : ""}`}
+                >
                   <p className="font-medium text-slate-800">{v.patient_name}</p>
                   <p className="text-slate-500 text-xs">{v.visit_no} · {new Date(v.closed_at).toLocaleDateString()}</p>
                 </button>
               </li>
             ))}
+            {visits.data?.results.length === 0 && (
+              <li className="p-4 text-center text-slate-500">No closed visits waiting for billing.</li>
+            )}
           </ul>
         </div>
 
         {/* Invoice Panel */}
-        <div className="bg-white border rounded-lg p-6">
+        <div className="bg-white border rounded-lg p-6 shadow-sm min-h-[400px]">
           {!selectedVisit ? (
-            <p className="text-slate-500 text-sm">Select a visit to view or generate the bill.</p>
-          ) : invoice.isLoading ? (
-            <p className="text-slate-500 text-sm">Checking for invoice…</p>
+            <div className="flex h-full items-center justify-center">
+              <p className="text-slate-400 text-sm">Select a visit to view or generate the bill.</p>
+            </div>
+          ) : invoice.isLoading || generateInvoice.isPending ? (
+            <div className="flex h-full items-center justify-center flex-col">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-500 mb-4"></div>
+              <p className="text-slate-500 text-sm">Generating invoice...</p>
+            </div>
           ) : !invoice.data ? (
-            <div className="text-center py-8">
-              <p className="text-slate-500 text-sm mb-4">No invoice generated. Make sure the visit is closed.</p>
-              <button onClick={() => generateInvoice.mutate(selectedVisit)} disabled={generateInvoice.isPending} className="bg-slate-200 text-slate-700 px-4 py-2 rounded text-sm hover:bg-slate-300">
-                Force Generate
-              </button>
+            <div className="flex h-full items-center justify-center text-center">
+              <p className="text-red-500 text-sm">Could not find or generate an invoice for this visit.</p>
             </div>
           ) : (
             <div>
               <div className="flex justify-between items-start border-b pb-4 mb-4">
                 <div>
-                  <h2 className="font-semibold text-lg">{invoice.data.invoice_no}</h2>
+                  <h2 className="font-semibold text-lg text-slate-800">{invoice.data.invoice_no}</h2>
                   <p className="text-slate-500 text-sm">{invoice.data.patient_name}</p>
                 </div>
-                <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-medium">{invoice.data.status}</span>
+                <div className="text-right">
+                  <span className={`text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wide ${
+                    invoice.data.balance <= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                  }`}>
+                    {invoice.data.balance <= 0 ? "Paid" : "Unpaid"}
+                  </span>
+                </div>
               </div>
               
-              <ul className="space-y-2 text-sm mb-4">
+              <ul className="space-y-2 text-sm mb-6">
                 {invoice.data.items.map((i: any) => (
                   <li key={i.id} className="flex justify-between text-slate-600">
                     <span>{i.quantity}x {i.description}</span>
@@ -186,140 +140,52 @@ export default function BillingDashboard() {
                 ))}
               </ul>
               
-              <div className="flex justify-between font-bold text-lg border-t pt-2">
+              <div className="flex justify-between font-bold text-lg border-t pt-2 text-slate-800">
                 <span>Total</span>
                 <span>ZMW {invoice.data.total}</span>
               </div>
-              <div className="flex justify-between font-medium text-emerald-600 border-b pb-4 mb-4">
+              <div className={`flex justify-between font-bold text-lg ${invoice.data.balance > 0 ? "text-red-600" : "text-emerald-600"}`}>
                 <span>Balance Due</span>
                 <span>ZMW {invoice.data.balance}</span>
               </div>
 
-              <button onClick={() => window.print()} className="w-full mb-4 bg-sky-100 text-sky-700 font-medium py-2 rounded hover:bg-sky-200">
-                Print Receipt
-              </button>
-
-              {/* Printable Area (Hidden on screen, visible on print) */}
-              <div id="print-area" className="hidden">
-                <div className="text-center mb-6">
-                  <h1 className="text-2xl font-bold">Nimbus OPD Cloud</h1>
-                  <p className="text-sm">Official Receipt</p>
-                </div>
-                <div className="flex justify-between mb-4 text-sm">
-                  <div>
-                    <p><b>Receipt:</b> {invoice.data.invoice_no}</p>
-                    <p><b>Patient:</b> {invoice.data.patient_name}</p>
-                  </div>
-                  <div className="text-right">
-                    <p><b>Date:</b> {new Date().toLocaleDateString()}</p>
-                  </div>
-                </div>
-                <table className="w-full text-sm mb-6">
-                  <thead className="border-b">
-                    <tr><th className="text-left py-2">Item</th><th className="text-right py-2">Amount</th></tr>
-                  </thead>
-                  <tbody>
-                    {invoice.data.items.map((i: any) => (
-                      <tr key={i.id}>
-                        <td className="py-2">{i.quantity}x {i.description}</td>
-                        <td className="text-right py-2">{i.total}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="border-t pt-2 text-right">
-                  <p className="font-bold text-lg">Total: ZMW {invoice.data.total}</p>
-                </div>
-                <p className="text-center text-xs mt-12">Thank you for choosing Nimbus OPD.</p>
-              </div>
-
-              {invoice.data.balance > 0 && (
-                <form onSubmit={onPayment} className="mt-6 border-t pt-4 space-y-3 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-lg">
-                  <h3 className="text-sm font-semibold text-slate-700">Record Payment</h3>
+              {/* Only show payment form if there is a balance */}
+              {invoice.data.balance > 0 ? (
+                <form onSubmit={onPayment} className="mt-8 border-t pt-6 space-y-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-lg">
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Record Payment</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="text-xs">
-                      <span className="text-slate-500">Amount</span>
-                      <input name="amount" defaultValue={invoice.data.balance} required className="w-full mt-1 border rounded px-2 py-1.5" />
+                      <span className="text-slate-500">Amount (ZMW)</span>
+                      <input name="amount" defaultValue={invoice.data.balance} required className="w-full mt-1 border rounded-lg px-3 py-2" />
                     </label>
                     <label className="text-xs">
                       <span className="text-slate-500">Method</span>
-                      <select name="method" className="w-full mt-1 border rounded px-2 py-1.5">
+                      <select name="method" className="w-full mt-1 border rounded-lg px-3 py-2">
                         <option value="cash">Cash</option>
+                        <option value="mobile_money">Mobile Money</option>
+                        <option value="card">Card</option>
                         <option value="insurance">Insurance</option>
-                        
-                        {/* Dynamic Mobile Money Options */}
-                        {momoConfigs.data?.map((c: any) => (
-                          <option key={`momo-${c.id}`} value={`mobile_money:${c.id}`}>
-                            {c.provider.replace("_", " ")} {c.display_name ? `(${c.display_name})` : ""}
-                          </option>
-                        ))}
-                        
-                        {/* Dynamic Gateway Options */}
-                        {gatewayConfigs.data?.map((c: any) => (
-                          <option key={`gw-${c.id}`} value={`card:${c.id}`}>
-                            {c.provider.charAt(0).toUpperCase() + c.provider.slice(1)} (Card)
-                          </option>
-                        ))}
                       </select>
                     </label>
                   </div>
                   <label className="text-xs block">
                     <span className="text-slate-500">Reference / Receipt #</span>
-                    <input name="reference" className="w-full mt-1 border rounded px-2 py-1.5" />
+                    <input name="reference" className="w-full mt-1 border rounded-lg px-3 py-2" />
                   </label>
-                  <button type="submit" disabled={recordPayment.isPending} className="w-full bg-emerald-600 text-white py-2 rounded text-sm font-medium hover:bg-emerald-700">
-                    {recordPayment.isPending ? "Processing..." : "Complete Cash/Card Payment"}
-                  </button>
-                  
-                  <div className="relative flex py-2 items-center">
-                    <div className="flex-grow border-t border-slate-200"></div>
-                    <span className="flex-shrink-0 mx-4 text-slate-400 text-xs uppercase font-medium">Or</span>
-                    <div className="flex-grow border-t border-slate-200"></div>
-                  </div>
-
-                  <button 
-                    type="button" 
-                    onClick={() => setMomoInvoice(invoice.data.id)}
-                    className="w-full bg-amber-400 text-amber-900 py-2 rounded text-sm font-bold hover:bg-amber-500"
-                  >
-                    Request MTN MoMo Payment
+                  <button type="submit" disabled={recordPayment.isPending} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 shadow-md mt-2">
+                    {recordPayment.isPending ? "Processing..." : "Complete Payment"}
                   </button>
                 </form>
+              ) : (
+                <div className="mt-8 text-center bg-emerald-50 text-emerald-700 p-4 rounded-lg border border-emerald-200">
+                  <p className="font-bold text-lg">Fully Paid</p>
+                  <p className="text-sm">This invoice has a zero balance.</p>
+                </div>
               )}
             </div>
           )}
         </div>
       </div>
-
-      {momoInvoice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
-            <h3 className="text-lg font-bold mb-4">MTN MoMo Payment</h3>
-            {!momoRef ? (
-              <form onSubmit={(e) => {
-                e.preventDefault();
-                requestMomo.mutate({ invoice_id: momoInvoice, phone_number: momoPhone, config_id: 1 }); // Using config_id 1 for demo
-              }}>
-                <label className="block text-sm mb-4">
-                  <span className="text-slate-600">Customer Phone Number</span>
-                  <input value={momoPhone} onChange={e => setMomoPhone(e.target.value)} required placeholder="260966123456" className="mt-1 w-full border rounded px-3 py-2" />
-                </label>
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setMomoInvoice(null)} className="px-4 py-2 text-slate-600">Cancel</button>
-                  <button type="submit" disabled={requestMomo.isPending} className="px-4 py-2 bg-amber-500 text-white rounded font-bold">Send Request</button>
-                </div>
-              </form>
-            ) : (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mx-auto mb-4"></div>
-                <p className="text-slate-600">Waiting for customer to approve on their phone...</p>
-                <p className="text-xs text-slate-400 mt-2">Ref: {momoRef}</p>
-                <button onClick={() => { setMomoInvoice(null); setMomoRef(null); setMomoPolling(false); }} className="mt-6 text-slate-500 underline">Cancel</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
