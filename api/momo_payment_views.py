@@ -22,7 +22,8 @@ class MomoRequestToPayView(APIView):
             return Response({"detail": "Missing fields"}, status=400)
             
         invoice = Invoice.all_objects.filter(id=invoice_id).first()
-        config = MobileMoneyConfig.all_objects.filter(id=config_id).first()
+        # MobileMoneyConfig uses a standard manager (objects), not all_objects
+        config = MobileMoneyConfig.objects.filter(id=config_id).first()
         
         if not invoice or not config:
             return Response({"detail": "Invoice or config not found"}, status=404)
@@ -64,7 +65,7 @@ class MomoStatusCheckView(APIView):
         if not txn:
             return Response({"detail": "Transaction not found"}, status=404)
             
-        config = MobileMoneyConfig.all_objects.filter(tenant=txn.tenant, provider="mtn_momo").first()
+        config = MobileMoneyConfig.objects.filter(tenant=txn.tenant, provider="mtn_momo").first()
         if not config:
             return Response({"detail": "MoMo config missing"}, status=404)
             
@@ -94,7 +95,6 @@ class MomoStatusCheckView(APIView):
 
 
 class MomoCallbackView(APIView):
-    """MTN sends a POST here when the payment finishes."""
     permission_classes = [AllowAny]
     authentication_classes = []
     

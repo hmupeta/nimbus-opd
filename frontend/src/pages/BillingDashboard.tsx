@@ -13,6 +13,11 @@ export default function BillingDashboard() {
   const [momoPolling, setMomoPolling] = useState(false);
   const [momoPhone, setMomoPhone] = useState("");
 
+  const momoConfigs = useQuery({
+    queryKey: ["momo-configs-active"],
+    queryFn: async () => (await api.get<Paginated<any>>("/mobile-money-configs/")).data.results.filter((c: any) => c.is_active),
+  });
+
   const visits = useQuery({
     queryKey: ["billing-visits"],
     queryFn: async () => (await api.get<Paginated<any>>("/visits/?status=closed")).data,
@@ -230,10 +235,15 @@ export default function BillingDashboard() {
             {!momoRef ? (
               <form onSubmit={(e) => {
                 e.preventDefault();
+                const activeConfig = momoConfigs.data?.[0];
+                if (!activeConfig) {
+                  alert("No active Mobile Money configuration found. Please ask your Finance Manager to set one up.");
+                  return;
+                }
                 requestMomo.mutate({ 
                   invoice_id: momoInvoice, 
                   phone_number: momoPhone, 
-                  config_id: 1 // Using the first active MoMo config
+                  config_id: activeConfig.id
                 });
               }}>
                 <label className="block text-sm mb-4">
