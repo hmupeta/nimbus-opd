@@ -6,6 +6,12 @@ import type { Paginated } from "../api/types";
 export default function BillingDashboard() {
   const qc = useQueryClient();
   const [selectedVisit, setSelectedVisit] = useState<number | null>(null);
+  
+  // MTN MoMo State
+  const [momoInvoice, setMomoInvoice] = useState<number | null>(null);
+  const [momoRef, setMomoRef] = useState<string | null>(null);
+  const [momoPolling, setMomoPolling] = useState(false);
+  const [momoPhone, setMomoPhone] = useState("");
 
   const visits = useQuery({
     queryKey: ["billing-visits"],
@@ -27,7 +33,6 @@ export default function BillingDashboard() {
       return data;
     },
     onSuccess: (data: any) => {
-      // Inject the invoice directly into the cache to stop UI flickering
       if (data && data.id) {
         qc.setQueryData(["invoice", selectedVisit], data);
       }
@@ -42,6 +47,41 @@ export default function BillingDashboard() {
       qc.invalidateQueries({ queryKey: ["invoice"] });
       qc.invalidateQueries({ queryKey: ["billing-visits"] });
     },
+  });
+
+  const requestMomo = useMutation({
+    mutationFn: async (payload: any) => {
+      const { data } = await api.post("/momo/request/", payload);
+      return data;
+    },
+    onSuccess: (data) => {
+      setMomoRef(data.reference_id);
+      setMomoPolling(true);
+      
+      // Start polling every 3 seconds
+      const interval = setInterval(async () => {
+        try {
+          const { data: statusData } = await api.get(`/momo/status/${data.reference_id}/`);
+          if (statusData.status === "SUCCESSFUL") {
+            clearInterval(interval);
+            setMomoPolling(false);
+            setMomoInvoice(null);
+            qc.invalidateQueries({ queryKey: ["invoice"] });
+            qc.invalidateQueries({ queryKey: ["billing-visits"] });
+            alert("MTN MoMo Payment Successful!");
+          } else if (statusData.status === "FAILED") {
+            clearInterval(interval);
+            setMomoPolling(false);
+            alert("MTN MoMo Payment Failed or Timed Out.");
+          }
+        } catch (e) {
+          console.error("Polling error", e);
+        }
+      }, 3000);
+    },
+    onError: (err: any) => {
+      alert("Failed to send request: " + (err.response?.data?.detail || err.message));
+    }
   });
 
   function onPayment(e: React.FormEvent<HTMLFormElement>) {
@@ -139,7 +179,7 @@ export default function BillingDashboard() {
 
               {invoice.data.balance > 0 && (
                 <form onSubmit={onPayment} className="mt-8 border-t pt-6 space-y-4 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-lg">
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Record Payment</h3>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wide">Record Manual Payment</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <label className="text-xs">
                       <span className="text-slate-500">Amount (ZMW)</span>
@@ -149,7 +189,6 @@ export default function BillingDashboard() {
                       <span className="text-slate-500">Method</span>
                       <select name="method" className="w-full mt-1 border rounded-lg px-3 py-2">
                         <option value="cash">Cash</option>
-                        <option value="mobile_money">Mobile Money</option>
                         <option value="card">Card</option>
                         <option value="insurance">Insurance</option>
                       </select>
@@ -160,7 +199,21 @@ export default function BillingDashboard() {
                     <input name="reference" className="w-full mt-1 border rounded-lg px-3 py-2" />
                   </label>
                   <button type="submit" disabled={recordPayment.isPending} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-bold hover:bg-emerald-700 shadow-md mt-2">
-                    {recordPayment.isPending ? "Processing..." : "Complete Payment"}
+                    {recordPayment.isPending ? "Processing..." : "Complete Manual Payment"}
+                  </button>
+                  
+                  <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-slate-200"></div>
+                    <span className="flex-shrink-0 mx-4 text-slate-400 text-xs uppercase font-medium">Or</span>
+                    <div className="flex-grow border-t border-slate-200"></div>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    onClick={() => setMomoInvoice(invoice.data.id)}
+                    className="w-full bg-amber-400 text-amber-900 py-3 rounded-lg font-bold hover:bg-amber-500 shadow-md"
+                  >
+                    Request MTN MoMo Payment
                   </button>
                 </form>
               )}
@@ -168,6 +221,44 @@ export default function BillingDashboard() {
           )}
         </div>
       </div>
+
+      {/* MTN MoMo Modal */}
+      {momoInvoice && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm">
+            <h3 className="text-lg font-bold mb-4 text-slate-800">MTN MoMo Payment</h3>
+            {!momoRef ? (
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                requestMomo.mutate({ 
+                  invoice_id: momoInvoice, 
+                  phone_number: momoPhone, 
+                  config_id: 1 // Using the first active MoMo config
+                });
+              }}>
+                <label className="block text-sm mb-4">
+                  <span className="text-slate-600 font-medium">Customer Phone Number</span>
+                  <input value={momoPhone} onChange={e => setMomoPhone(e.target.value)} required placeholder="260966123456" className="mt-1 w-full border rounded-lg px-3 py-2" />
+                </label>
+                <div className="flex justify-end gap-2">
+                  <button type="button" onClick={() => setMomoInvoice(null)} className="px-4 py-2 text-slate-600 font-medium">Cancel</button>
+                  <button type="submit" disabled={requestMomo.isPending} className="px-4 py-2 bg-amber-500 text-white rounded-lg font-bold">
+                    {requestMomo.isPending ? "Sending..." : "Send Request"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500 mx-auto mb-4"></div>
+                <p className="text-slate-700 font-medium">Waiting for customer to approve...</p>
+                <p className="text-sm text-slate-500 mt-1">Please ask the patient to enter their PIN on their phone.</p>
+                <p className="text-xs text-slate-400 mt-2 font-mono bg-slate-50 p-1 rounded">Ref: {momoRef}</p>
+                <button onClick={() => { setMomoInvoice(null); setMomoRef(null); setMomoPolling(false); }} className="mt-6 text-sm text-slate-500 underline">Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
