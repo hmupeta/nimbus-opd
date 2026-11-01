@@ -55,7 +55,7 @@ ROLE_CHOICES = [
     ("doctor", "Doctor"),
     ("lab", "Lab Technician"),
     ("radiology", "Radiologist"),
-    ("pharmacist", "Pharmacist"),
+    ("pharmacist", "Pharmacist", "Accountant", "Finance Manager"),
 ]
 
 

@@ -117,7 +117,7 @@ const ROLES = [
   { value: "receptionist", label: "Receptionist" },
   { value: "lab", label: "Lab Technician" },
   { value: "radiology", label: "Radiologist" },
-  { value: "pharmacist", label: "Pharmacist" },
+  { value: "pharmacist", label: "Pharmacist", "Accountant", "Finance Manager" },
 ];
 
 export default function Staff() {
