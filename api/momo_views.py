@@ -24,24 +24,34 @@ class MobileMoneyConfigViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="create-api-user")
     def create_api_user(self, request):
-        """Simulate MTN/Airtel provisioning an API User and API Key."""
-        import uuid
         provider = request.data.get("provider")
         callback_host = request.data.get("callback_host")
+        subscription_key = request.data.get("subscription_key")
         
-        if not provider or not callback_host:
-            return Response({"detail": "provider and callback_host are required"}, status=400)
+        if not provider or not callback_host or not subscription_key:
+            return Response({"detail": "provider, callback_host, and subscription_key are required"}, status=400)
 
-        # In production, you would POST to the provider's /apiuser endpoint here.
-        # We simulate a successful response.
-        generated_user = f"user_{uuid.uuid4().hex[:10]}"
-        generated_key = f"key_{uuid.uuid4().hex[:16]}"
+        from billing.mtn_service import MTNMoMoService
+        from tenants.models import MobileMoneyConfig
         
-        return Response({
-            "api_user": generated_user,
-            "api_key": generated_key,
-            "message": f"Successfully provisioned API User for {provider}."
-        })
+        temp_cfg = MobileMoneyConfig(
+            tenant=request.user.tenant,
+            provider=provider,
+            environment="sandbox",
+            subscription_key=subscription_key
+        )
+        
+        try:
+            service = MTNMoMoService(temp_cfg)
+            # Now calls the real MTN API to provision a UUID and Key
+            api_user, api_key = service.provision_api_user(callback_host, subscription_key)
+            return Response({
+                "api_user": api_user,
+                "api_key": api_key,
+                "message": "Successfully provisioned a real API User on MTN Sandbox."
+            })
+        except Exception as e:
+            return Response({"detail": str(e)}, status=400)
 
     @action(detail=True, methods=["post"], url_path="test-connection")
     def test_connection(self, request, pk=None):

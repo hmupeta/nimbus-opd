@@ -8,27 +8,33 @@ class MTNMoMoService:
     def __init__(self, config: MobileMoneyConfig):
         self.config = config
         self.env = "sandbox" if config.environment == "sandbox" else "mtnzambia"
-        self.base_url = f"https://{self.env}.momodeveloper.mtn.com" if self.env == "sandbox" else "https://proxy.momoapi.mtn.com"
+        # For sandbox, the URL is https://sandbox.momodeveloper.mtn.com
+        self.base_url = "https://sandbox.momodeveloper.mtn.com" if self.env == "sandbox" else "https://proxy.momoapi.mtn.com"
 
-    def create_api_user(self, callback_host):
+    def provision_api_user(self, callback_host, subscription_key):
         """Create a real API user and key on MTN Sandbox."""
-        ref_id = str(uuid.uuid4())
+        ref_id = str(uuid.uuid4()) # MTN requires a UUID v4 for the API User
+        
+        # 1. Create the API User
         url = f"{self.base_url}/v1_0/apiuser"
         headers = {
             "X-Reference-Id": ref_id,
-            "Ocp-Apim-Subscription-Key": self.config.subscription_key,
+            "Ocp-Apim-Subscription-Key": subscription_key,
             "Content-Type": "application/json"
         }
-        r = requests.post(url, headers=headers, json={"providerCallbackHost": callback_host})
-        if r.status_code != 201:
-             raise Exception(f"Failed to create API user: {r.text}")
+        payload = {"providerCallbackHost": callback_host}
         
-        # Get API Key
+        r = requests.post(url, headers=headers, json=payload, timeout=15)
+        if r.status_code != 201:
+            raise Exception(f"Failed to create API user: {r.text}")
+        
+        # 2. Get the API Key for that user
         url = f"{self.base_url}/v1_0/apiuser/{ref_id}/apikey"
-        headers = {"Ocp-Apim-Subscription-Key": self.config.subscription_key}
-        r = requests.post(url, headers=headers)
+        headers = {"Ocp-Apim-Subscription-Key": subscription_key}
+        
+        r = requests.post(url, headers=headers, timeout=15)
         if r.status_code != 200:
-             raise Exception(f"Failed to get API key: {r.text}")
+            raise Exception(f"Failed to get API key: {r.text}")
         
         return ref_id, r.json()["apiKey"]
 
