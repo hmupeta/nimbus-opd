@@ -1,122 +1,94 @@
-#!/usr/bin/env python3
-"""
-fix_user_creation.py
-Runs missing migrations for the new roles and adds frontend error handling.
-"""
-import os, re, shutil, subprocess, sys
+import os
 from pathlib import Path
 
-ROOT = Path.cwd()
-if not (ROOT / "manage.py").exists():
-    sys.exit("Run this from inside the opd/ directory")
-FRONTEND = ROOT / "frontend"
-PY = ROOT / ".venv" / ("Scripts" if sys.platform == "win32" else "bin") / (
-    "python.exe" if sys.platform == "win32" else "python")
+BACKEND_PATH = Path(__file__).resolve().parent
+views_path = BACKEND_PATH / "core" / "views.py"
 
-def sh(*cmd, cwd=ROOT, check=True):
-    print("   $", " ".join(str(c) for c in cmd))
-    return subprocess.run([str(c) for c in cmd], cwd=cwd, check=check)
+# We will append a bulletproof user creation view to core/views.py
+NEW_VIEW = '''
 
-def npm_path():
-    p = shutil.which("npm")
-    if p: return p
-    for c in [
-        Path.home() / "Documents" / "django" / "nodejs" / "npm.cmd",
-        Path.home() / "AppData" / "Roaming" / "npm" / "npm.cmd",
-    ]:
-        if c.exists(): return str(c)
-    return None
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+from django.db import transaction
+from core.models import BranchAccess, Company, Tenant
 
-# ═════════════════════════════════════════════════════════════════════
-# 1. Run Migrations (Fixes the 400 Bad Request)
-# ═════════════════════════════════════════════════════════════════════
-print("==> Applying database migrations for the new roles")
-sh(str(PY), "manage.py", "makemigrations")
-sh(str(PY), "manage.py", "migrate")
+User = get_user_model()
 
-# ═════════════════════════════════════════════════════════════════════
-# 2. Check Backend Serializer for hardcoded role lists
-# ═════════════════════════════════════════════════════════════════════
-print("\n==> Checking backend serializers for role validation")
-serializer_patched = False
-for p in ROOT.glob("api/**/*.py"):
-    txt = p.read_text(encoding="utf-8")
-    if "class UserSerializer" in txt or "class UserCreateSerializer" in txt:
-        if "Accountant" not in txt and "Pharmacist" in txt:
-            txt = txt.replace('"Pharmacist"', '"Pharmacist", "Accountant", "Finance Manager"')
-            txt = txt.replace("'Pharmacist'", "'Pharmacist', 'Accountant', 'Finance Manager'")
-            p.write_text(txt, encoding="utf-8")
-            print(f"   Patched hardcoded role list in {p.relative_to(ROOT)}")
-            serializer_patched = True
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def users_list_create(request):
+    """List users or create a new user."""
+    if request.method == "GET":
+        # Return users belonging to the same tenant
+        if not request.tenant:
+            return Response([])
+        users = User.objects.filter(tenant=request.tenant).order_by("-date_joined")
+        return Response([{
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "user_type": u.user_type,
+            "is_active": u.is_active,
+        } for u in users])
 
-if not serializer_patched:
-    print("   No hardcoded role validation found in serializers (migration should be enough).")
+    # --- POST: Create User ---
+    data = request.data
+    username = data.get("username")
+    password = data.get("password")
+    email = data.get("email", "")
+    role = data.get("user_type", "CASHIER") # or CASHIER/DOCTOR etc based on your UI
+    branch_id = data.get("branch_id")
 
-# ═════════════════════════════════════════════════════════════════════
-# 3. Patch Frontend to Show Errors
-# ═════════════════════════════════════════════════════════════════════
-print("\n==> Adding frontend error handling to Staff form")
-frontend_patched = False
+    if not username or not password:
+        return Response({"error": "Username and password are required."}, status=400)
 
-for p in FRONTEND.glob("src/**/*.tsx"):
-    txt = p.read_text(encoding="utf-8")
-    # Look for the file that POSTs to /users/
-    if 'api.post("/users/' in txt or "api.post('/users/" in txt:
-        print(f"   Found user creation form: {p.relative_to(FRONTEND)}")
-        
-        # If it doesn't already have a try/catch with an alert, inject one
-        if "catch (err: any)" not in txt and "catch (e: any)" not in txt:
-            # Look for a mutation pattern: const mutation = useMutation({ mutationFn: ... })
-            # or a standard async submit handler.
+    if User.objects.filter(username=username).exists():
+        return Response({"error": "A user with this username already exists."}, status=400)
+
+    try:
+        with transaction.atomic():
+            # Create the user attached to the same tenant as the admin creating them
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                tenant=request.tenant,
+                user_type=role,
+                employment_status="ACTIVE",
+                is_active=True
+            )
+
+            # Assign branch if provided
+            if branch_id:
+                try:
+                    branch = Company.objects.get(pk=branch_id, tenant=request.tenant)
+                    BranchAccess.objects.create(user=user, company=branch, is_default=True)
+                except Company.DoesNotExist:
+                    pass
             
-            # Simple fix: Find the submit function and wrap it
-            # (This is a generic fallback since I don't have the exact code)
-            if "const handleSubmit" in txt or "const onSubmit" in txt:
-                func_name = "handleSubmit" if "const handleSubmit" in txt else "onSubmit"
-                # We will tell the user how to fix it manually if the regex is too complex, 
-                # but let's try a safe injection into the catch block if one exists.
-                pass
+            return Response({"success": True, "id": user.id}, status=201)
             
-            # Better approach: If there's an api.post, look for onError in useMutation
-            if "useMutation" in txt and "onError" not in txt:
-                txt = re.sub(
-                    r'(useMutation\(\{\s*mutationFn:\s*async\s*\([^)]*\)\s*=>\s*[^,]+,\s*)',
-                    r'\1onError: (err: any) => alert("Error creating user: " + JSON.stringify(err.response?.data || err.message)),\n',
-                    txt
-                )
-                p.write_text(txt, encoding="utf-8")
-                print("   Injected onError alert into useMutation.")
-                frontend_patched = True
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+'''
 
-# ═════════════════════════════════════════════════════════════════════
-# 4. Build & Push
-# ═════════════════════════════════════════════════════════════════════
-npm = npm_path()
-if npm:
-    print("\n==> Running Vite build")
-    env = os.environ.copy()
-    env["PATH"] = str(Path(npm).parent) + os.pathsep + env.get("PATH", "")
-    r = subprocess.run([npm, "run", "build"], cwd=FRONTEND,
-                       capture_output=True, text=True, env=env)
-    if r.returncode == 0:
-        print("   ✓ build OK")
-    else:
-        print("   ❌ build failed:")
-        for line in (r.stdout + r.stderr).splitlines()[-15:]:
-            print("     " + line)
-        sys.exit(1)
+# Append to views.py
+with open(views_path, "a", encoding="utf-8") as f:
+    f.write("\n" + NEW_VIEW)
 
-print("\n==> Committing and pushing")
-subprocess.run(["git", "add", "."], cwd=ROOT, check=True)
-status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT,
-                        capture_output=True, text=True).stdout.strip()
-if status:
-    subprocess.run(["git", "commit", "-m", "fix: apply migrations for new roles and show backend errors"], cwd=ROOT, check=True)
-else:
-    print("   (nothing to commit)")
-subprocess.run(["git", "push", "origin", "main"], cwd=ROOT, check=True)
+# Update urls.py to point /api/users/ to this new view
+urls_path = BACKEND_PATH / "core" / "urls.py"
+with open(urls_path, "r", encoding="utf-8") as f:
+    urls_content = f.read()
 
-print("\n✅ Done.")
-print("\nNEXT STEPS ON RENDER:")
-print("  1. nimbus-backend  → Manual Deploy → Clear build cache & deploy")
-print("  2. nimbus-frontend → Manual Deploy → Clear build cache & deploy")
+if "users_list_create" not in urls_content:
+    urls_content = urls_content.replace(
+        "urlpatterns = [",
+        "from .views import users_list_create\n\nurlpatterns = [\n    path('users/', users_list_create, name='users_list_create'),"
+    )
+    with open(urls_path, "w", encoding="utf-8") as f:
+        f.write(urls_content)
+
+print("✅ User creation endpoint fixed and mounted at /api/users/")
