@@ -78,13 +78,20 @@ export default function Layout() {
             <>
               <SectionTitle title="Finance" />
               <NavItem to="/billing" icon={CreditCard} label="Billing" roles={["receptionist", "admin"]} />
-              <NavItem to="/accounting" icon={BookOpen} label="General Ledger" roles={["accountant", "finance_manager", "admin"]} />
-              <NavItem to="/chart-of-accounts" icon={Landmark} label="Chart of Accounts" roles={["accountant", "finance_manager", "admin"]} />
-              <NavItem to="/expenses" icon={Receipt} label="Expenses" roles={["accountant", "finance_manager", "admin"]} />
-              <NavItem to="/accounts-payable" icon={CreditCard} label="Accounts Payable" roles={["accountant", "finance_manager", "admin"]} />
-              <NavItem to="/fixed-assets" icon={Boxes} label="Fixed Assets" roles={["accountant", "finance_manager", "admin"]} />
-              <NavItem to="/suppliers" icon={Building2} label="Suppliers" roles={["accountant", "finance_manager", "admin"]} />
-              <NavItem to="/integrations" icon={Plug} label="Integrations" roles={["finance_manager", "admin"]} />
+              <NavItem to="/payments" icon={Receipt} label="Payments" roles={["receptionist", "admin", "accountant", "finance_manager"]} />
+              
+              {(user?.role === "accountant" || user?.role === "finance_manager" || user?.role === "admin") && (
+                <>
+                  <NavItem to="/accounting" icon={BookOpen} label="General Ledger" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/financial-reports" icon={BarChart} label="Financial Reports" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/chart-of-accounts" icon={Landmark} label="Chart of Accounts" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/expenses" icon={Receipt} label="Expenses" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/accounts-payable" icon={CreditCard} label="Accounts Payable" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/fixed-assets" icon={Boxes} label="Fixed Assets" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/suppliers" icon={Building2} label="Suppliers" roles={["accountant", "finance_manager", "admin"]} />
+                  <NavItem to="/integrations" icon={Plug} label="Integrations" roles={["finance_manager", "admin"]} />
+                </>
+              )}
             </>
           )}
 
