@@ -1,418 +1,315 @@
-import { FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import React, { useState } from "react";
+import { 
+  ShieldCheck, HeartPulse, Stethoscope, 
+  Smartphone, CreditCard, MessageSquare, 
+  FileCheck, BarChart3, Users, 
+  CheckCircle2, ArrowRight, Menu, X 
+} from "lucide-react";
 
 export default function LandingPage() {
-  const [showForm, setShowForm] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [showPrivacy, setShowPrivacy] = useState(false);
-  
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  async function onRegister(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setBusy(true);
-    const fd = new FormData(e.currentTarget);
-    
-    try {
-      await axios.post("/api/auth/register/", {
-        clinic_name: fd.get("clinic_name"),
-        clinic_code: fd.get("clinic_code"),
-        first_name: fd.get("first_name"),
-        last_name: fd.get("last_name"),
-        email: fd.get("email"),
-        password: fd.get("password"),
-      });
-      setSuccess(true);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Registration failed. Check your details.");
-    } finally {
-      setBusy(false);
-    }
-  }
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setMobileMenuOpen(false);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans overflow-x-hidden">
-      {/* ─── NAVBAR ─── */}
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-sky-600 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md">N</div>
-          <div className="text-2xl font-bold text-slate-800 tracking-tight">Nimbus <span className="text-sky-600">OPD Cloud</span></div>
-        </div>
-        <div className="space-x-6 hidden md:flex items-center">
-          <a href="#features" className="text-slate-600 font-medium hover:text-sky-700 transition">Features</a>
-          <a href="#workflow" className="text-slate-600 font-medium hover:text-sky-700 transition">How it Works</a>
-          <a href="#pricing" className="text-slate-600 font-medium hover:text-sky-700 transition">Pricing</a>
-          <Link to="/login" className="text-slate-600 font-medium hover:text-sky-700 transition">Sign In</Link>
-          <button onClick={() => setShowForm(true)} className="bg-sky-600 text-white px-5 py-2 rounded-lg font-medium hover:bg-sky-700 shadow-md transition transform hover:-translate-y-0.5">Get Started</button>
-        </div>
-      </header>
-
-      <main className="flex-1">
-        {/* ─── HERO: PROBLEM VS SOLUTION ─── */}
-        <section className="py-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <div className="inline-block bg-sky-100 text-sky-800 font-semibold px-4 py-1.5 rounded-full text-sm shadow-sm">
-              Built for Zambian Clinics
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-sky-200">
+      
+      {/* ── NAVBAR ────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+              <div className="bg-sky-600 p-2 rounded-lg">
+                <HeartPulse className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-slate-900 tracking-tight">Nimbus OPD</span>
             </div>
-            <h1 className="text-5xl lg:text-6xl font-extrabold text-slate-900 leading-tight">
-              Stop Losing Revenue to <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">Paperwork.</span>
-            </h1>
-            <p className="text-xl text-slate-600">
-              Are you still struggling with long OPD queues, manual billing errors, and scattered paper records? It's time to move to a smarter, cloud-based system.
-            </p>
-            <div className="flex gap-4 pt-4">
-              <button onClick={() => setShowForm(true)} className="bg-sky-600 text-white px-8 py-3.5 rounded-lg text-lg font-bold hover:bg-sky-700 shadow-lg transition transform hover:-translate-y-1">
-                Register Your Clinic
-              </button>
-              <a href="#features" className="bg-white text-slate-700 border-2 border-slate-200 px-8 py-3.5 rounded-lg text-lg font-bold hover:bg-slate-50 transition">
-                See Features
+            
+            <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+              <button onClick={() => scrollTo("features")} className="hover:text-sky-600 transition">Features</button>
+              <button onClick={() => scrollTo("integrations")} className="hover:text-sky-600 transition">Integrations</button>
+              <button onClick={() => scrollTo("insurance")} className="hover:text-sky-600 transition">Insurance & NHIMA</button>
+              <button onClick={() => scrollTo("pricing")} className="hover:text-sky-600 transition">Pricing</button>
+            </nav>
+
+            <div className="hidden md:flex items-center gap-4">
+              <a href="/login" className="text-sm font-medium text-slate-700 hover:text-sky-600">Log in</a>
+              <a href="/login" className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition shadow-sm">
+                Book a Demo
               </a>
             </div>
-          </div>
-          <div className="relative">
-            <div className="absolute inset-0 bg-sky-200 rounded-3xl transform rotate-3 scale-105 opacity-50"></div>
-            <img 
-              src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1200" 
-              alt="Modern Clinic" 
-              className="relative rounded-3xl shadow-2xl object-cover h-[400px] w-full"
-            />
-            <div className="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl font-bold">✓</div>
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Patient Wait Time</p>
-                <p className="text-lg font-bold text-slate-800">Reduced by 60%</p>
-              </div>
-            </div>
-          </div>
-        </section>
 
-        {/* ─── FEATURE HIGHLIGHTS ─── */}
-        <section id="features" className="py-24 bg-white border-y border-slate-200">
-          <div className="max-w-6xl mx-auto px-6">
-            <h2 className="text-4xl font-bold text-center mb-4 text-slate-800">The Power of Nimbus</h2>
-            <p className="text-center text-slate-500 mb-16 max-w-2xl mx-auto text-lg">
-              Nimbus OPD Cloud automates your entire patient journey—from registration to billing—in one unified, secure platform.
+            <button className="md:hidden p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
+        </div>
+        {/* Mobile Nav */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-slate-100 p-4 space-y-3 shadow-lg">
+            <button onClick={() => scrollTo("features")} className="block w-full text-left py-2 text-slate-600 font-medium">Features</button>
+            <button onClick={() => scrollTo("integrations")} className="block w-full text-left py-2 text-slate-600 font-medium">Integrations</button>
+            <button onClick={() => scrollTo("insurance")} className="block w-full text-left py-2 text-slate-600 font-medium">Insurance & NHIMA</button>
+            <hr className="border-slate-100" />
+            <a href="/login" className="block w-full text-center bg-sky-600 text-white py-2 rounded-lg font-medium">Log in</a>
+          </div>
+        )}
+      </header>
+
+      {/* ── HERO SECTION ───────────────────────────────────────────── */}
+      <section className="relative pt-20 pb-32 overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center opacity-5"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="text-center max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-100 text-sky-700 text-xs font-semibold mb-6">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+              </span>
+              Built for the Zambian Healthcare Market
+            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight mb-6 leading-tight">
+              The Modern OPD Software that <span className="text-sky-600">Connects</span> Your Clinic.
+            </h1>
+            <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto">
+              Streamline patient queues, integrate Mobile Money & Card payments, automate SMS/WhatsApp reminders, and process NHIMA insurance claims—all from one secure platform.
             </p>
-            <div className="grid md:grid-cols-3 gap-8">
-              <FeatureCard 
-                icon="🎫" 
-                title="Smart OPD & Queue" 
-                desc="Digital token generation, live queue display, and automated patient flow to reduce waiting times."
-              />
-              <FeatureCard 
-                icon="📋" 
-                title="Unified EMR/EHR" 
-                desc="A complete digital record of every patient visit, including SOAP notes, vitals, and history."
-              />
-              <FeatureCard 
-                icon="💊" 
-                title="Integrated Pharmacy" 
-                desc="Barcode-based inventory with automatic expiry alerts and seamless billing integration."
-              />
-              <FeatureCard 
-                icon="🔬" 
-                title="Connected Lab & Radiology" 
-                desc="Order tests digitally, receive results directly into the patient's EMR, and track turnaround times."
-              />
-              <FeatureCard 
-                icon="💳" 
-                title="Automated Billing" 
-                desc="Zero-error invoices, support for Mobile Money, Stripe/PayPal, and insurance claims."
-              />
-              <FeatureCard 
-                icon="📊" 
-                title="Real-Time Analytics" 
-                desc="Dashboards for revenue, doctor performance, patient footfall, and lab TAT."
-              />
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <a href="/login" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-sky-600 rounded-xl hover:bg-sky-700 shadow-lg shadow-sky-600/20 transition-all hover:-translate-y-0.5">
+                Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
+              </a>
+              <button onClick={() => scrollTo("features")} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-all">
+                Explore Features
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-slate-500">No credit card required. 14-day free trial.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* ── TRUST STATS ───────────────────────────────────────────── */}
+      <section className="border-y border-slate-200 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <p className="text-3xl font-extrabold text-slate-900">99.9%</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">Uptime Reliability</p>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-slate-900">15 min</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">Average Wait Time Reduction</p>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-slate-900">3+</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">Mobile Money Networks</p>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-slate-900">100%</p>
+              <p className="text-sm text-slate-500 font-medium mt-1">NHIMA Claim Ready</p>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ─── WORKFLOW ─── */}
-        <section id="workflow" className="py-24 bg-slate-50">
-          <div className="max-w-6xl mx-auto px-6">
-            <h2 className="text-4xl font-bold text-center mb-16 text-slate-800">How Nimbus Works</h2>
-            <div className="grid md:grid-cols-4 gap-8">
-              <WorkflowStep 
-                num="1" 
-                title="Register" 
-                desc="A receptionist registers a patient and generates a digital token."
-              />
-              <WorkflowStep 
-                num="2" 
-                title="Triage" 
-                desc="A nurse records vitals, which automatically updates the patient's EMR."
-              />
-              <WorkflowStep 
-                num="3" 
-                title="Consult" 
-                desc="The doctor reviews history, writes digital prescriptions, and orders labs."
-              />
-              <WorkflowStep 
-                num="4" 
-                title="Bill" 
-                desc="An invoice is auto-generated, pharmacy dispenses, and payment is collected."
-              />
-            </div>
+      {/* ── CORE FEATURES ─────────────────────────────────────────── */}
+      <section id="features" className="py-24 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">Everything your clinic needs. <br/>Nothing you don't.</h2>
+            <p className="text-lg text-slate-600">A complete OPD ecosystem designed to eliminate paperwork, reduce queues, and increase revenue.</p>
           </div>
-        </section>
 
-        {/* ─── BENEFITS ─── */}
-        <section className="py-24 bg-sky-900 text-white">
-          <div className="max-w-6xl mx-auto px-6 text-center">
-            <h2 className="text-4xl font-bold mb-16">Why Clinics Choose Nimbus</h2>
-            <div className="grid md:grid-cols-4 gap-8">
-              <div>
-                <p className="text-5xl font-extrabold text-sky-400 mb-2">60%</p>
-                <p className="text-lg font-medium">Faster patient throughput</p>
-              </div>
-              <div>
-                <p className="text-5xl font-extrabold text-emerald-400 mb-2">22%</p>
-                <p className="text-lg font-medium">Revenue leakage prevented</p>
-              </div>
-              <div>
-                <p className="text-5xl font-extrabold text-indigo-400 mb-2">100%</p>
-                <p className="text-lg font-medium">Compliance with audit trails</p>
-              </div>
-              <div>
-                <p className="text-5xl font-extrabold text-amber-400 mb-2">24/7</p>
-                <p className="text-lg font-medium">Access from any device</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ─── PRICING ─── */}
-        <section id="pricing" className="py-24 px-6 max-w-6xl mx-auto text-center bg-slate-50">
-          <h2 className="text-4xl font-bold mb-4 text-slate-800">Simple, Transparent Pricing</h2>
-          <p className="text-slate-500 mb-16 text-lg">All prices are in Zambian Kwacha (ZMW). No hidden fees.</p>
           <div className="grid md:grid-cols-3 gap-8">
-            <PriceCard 
-              name="Starter" 
-              price="K1,250" 
-              period="/mo" 
-              annual="K15,000 / year"
-              desc="Perfect for small clinics getting started." 
-              features={["1 Doctor", "Up to 500 Patients/mo", "OPD & Billing", "Basic Reporting"]} 
-            />
-            <PriceCard 
-              name="Pro" 
-              price="K3,500" 
-              period="/mo" 
-              annual="K42,000 / year"
-              desc="For growing clinics with more staff." 
-              features={["Up to 5 Doctors", "Unlimited Patients", "Lab & Pharmacy", "SMS Notifications", "Insurance Claims"]} 
-              highlighted={true} 
-            />
-            <PriceCard 
-              name="Enterprise" 
-              price="Custom" 
-              period="" 
-              annual=""
-              desc="For hospitals and multi-branch groups." 
-              features={["Unlimited Doctors", "Multi-Branch", "Dedicated Support", "Custom Integrations", "SLA Guarantee"]} 
-            />
-          </div>
-        </section>
-      </main>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
-        <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8 text-sm">
-          <div>
-            <div className="text-white text-lg font-bold mb-4 flex items-center gap-2">
-              <div className="w-6 h-6 bg-sky-600 rounded flex items-center justify-center text-xs">N</div>
-              Nimbus OPD Cloud
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
+              <div className="bg-blue-50 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
+                <Users className="h-6 w-6 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Smart Queue Management</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">Digital token generation, live queue tracking, and automated triage. Reduce waiting room congestion and improve patient satisfaction.</p>
             </div>
-            <p>© {new Date().getFullYear()} Nimbus Software Ltd. All rights reserved.</p>
-            <p className="mt-2">Built for modern healthcare in Zambia.</p>
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
+              <div className="bg-emerald-50 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
+                <Stethoscope className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Clinical & E-Prescriptions</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">Digital patient records, vitals tracking, and instant e-prescriptions sent directly to your pharmacy or the patient's phone.</p>
+            </div>
+            <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition">
+              <div className="bg-purple-50 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
+                <BarChart3 className="h-6 w-6 text-purple-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-3">Financial & Revenue Reports</h3>
+              <p className="text-slate-600 text-sm leading-relaxed">Real-time Profit & Loss, Balance Sheets, AR Aging, and Cash Flow statements. Make data-driven decisions instantly.</p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-white font-semibold mb-4">Legal</h4>
-            <ul className="space-y-2">
-              <li><button onClick={() => setShowTerms(true)} className="hover:text-white hover:underline text-left transition">Terms & Conditions</button></li>
-              <li><button onClick={() => setShowPrivacy(true)} className="hover:text-white hover:underline text-left transition">Privacy Policy</button></li>
-            </ul>
+        </div>
+      </section>
+
+      {/* ── INTEGRATIONS (PAYMENTS & COMMS) ───────────────────────── */}
+      <section id="integrations" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6">Seamless Payments. <br/>Instant Communication.</h2>
+              <p className="text-lg text-slate-600 mb-8">Nimbus OPD connects directly to the tools your patients already use. No more manual reconciliation or missed appointments.</p>
+              
+              <div className="space-y-6">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="bg-amber-100 p-2 rounded-lg"><Smartphone className="h-5 w-5 text-amber-600" /></div>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Mobile Money Integration</h4>
+                    <p className="text-sm text-slate-600 mt-1">Accept instant payments via <strong>MTN MoMo, Airtel Money, and Zamtel Kwacha</strong>. Automatic receipt generation and ledger posting.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="bg-indigo-100 p-2 rounded-lg"><CreditCard className="h-5 w-5 text-indigo-600" /></div>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">Card Payments (Stripe & PayPal)</h4>
+                    <p className="text-sm text-slate-600 mt-1">Securely process international and local card payments. PCI-DSS compliant and fully integrated with your billing module.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="bg-emerald-100 p-2 rounded-lg"><MessageSquare className="h-5 w-5 text-emerald-600" /></div>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900">SMS & WhatsApp Notifications</h4>
+                    <p className="text-sm text-slate-600 mt-1">Automated appointment reminders, lab result alerts, and payment confirmations sent via SMS or WhatsApp to reduce no-shows.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-tr from-sky-100 to-emerald-50 rounded-3xl transform rotate-3 scale-105 -z-10"></div>
+              <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-amber-400"></div>
+                    <div className="w-3 h-3 rounded-full bg-emerald-400"></div>
+                  </div>
+                  <span className="text-xs font-mono text-slate-400">payment_gateway.config</span>
+                </div>
+                <div className="space-y-3 font-mono text-sm">
+                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded border border-slate-100">
+                    <span className="text-slate-700">MTN Mobile Money</span>
+                    <span className="text-emerald-600 font-bold">Active</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded border border-slate-100">
+                    <span className="text-slate-700">Airtel Money</span>
+                    <span className="text-emerald-600 font-bold">Active</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded border border-slate-100">
+                    <span className="text-slate-700">Stripe (Cards)</span>
+                    <span className="text-emerald-600 font-bold">Active</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-slate-50 rounded border border-slate-100">
+                    <span className="text-slate-700">WhatsApp API</span>
+                    <span className="text-emerald-600 font-bold">Connected</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div>
-            <h4 className="text-white font-semibold mb-4">Contact</h4>
-            <ul className="space-y-2">
-              <li>support@nimbusopd.com</li>
-              <li>+260 211 123 456</li>
-              <li>Lusaka, Zambia</li>
-            </ul>
+        </div>
+      </section>
+
+      {/* ── INSURANCE & NHIMA SECTION ─────────────────────────────── */}
+      <section id="insurance" className="py-24 bg-slate-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-900/50 border border-sky-700 text-sky-300 text-xs font-semibold mb-6">
+                <ShieldCheck className="h-4 w-4" /> NHIMA Ready
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">Simplify Insurance Claims. <br/>Eliminate Denials.</h2>
+              <p className="text-lg text-slate-300 mb-8">
+                Manual insurance claims are slow and error-prone. Nimbus OPD is built to integrate with <strong>NHIMA</strong> and private insurance providers to verify eligibility, submit claims, and track payments in real-time.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "Real-time patient eligibility verification",
+                  "Automated claim submission (FHIR & REST APIs)",
+                  "Co-payment and deductible management",
+                  "Reduced claim denial rates"
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-sky-400 flex-shrink-0 mt-0.5" />
+                    <span className="text-slate-200">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-slate-800 p-8 rounded-2xl border border-slate-700">
+               <div className="flex items-center gap-4 mb-6">
+                 <div className="bg-sky-500/20 p-3 rounded-full"><FileCheck className="h-6 w-6 text-sky-400" /></div>
+                 <div>
+                   <h4 className="font-bold text-white">NHIMA Claim Status</h4>
+                   <p className="text-xs text-slate-400">Ref: CLM-2026-8942</p>
+                 </div>
+               </div>
+               <div className="space-y-4">
+                 <div className="flex justify-between text-sm border-b border-slate-700 pb-2">
+                   <span className="text-slate-400">Eligibility Check</span>
+                   <span className="text-emerald-400 font-medium">Verified ✓</span>
+                 </div>
+                 <div className="flex justify-between text-sm border-b border-slate-700 pb-2">
+                   <span className="text-slate-400">Claim Submitted</span>
+                   <span className="text-sky-400 font-medium">Processing</span>
+                 </div>
+                 <div className="flex justify-between text-sm border-b border-slate-700 pb-2">
+                   <span className="text-slate-400">Expected Reimbursement</span>
+                   <span className="text-white font-medium">ZMW 1,250.00</span>
+                 </div>
+               </div>
+               <div className="mt-6 p-3 bg-sky-900/30 rounded-lg text-xs text-sky-300 border border-sky-800">
+                 💡 Did you know? Clinics using automated NHIMA verification reduce claim denials by up to 40%.
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA SECTION ───────────────────────────────────────────── */}
+      <section className="py-24 bg-sky-600">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Ready to modernize your clinic?</h2>
+          <p className="text-lg text-sky-100 mb-10 max-w-2xl mx-auto">Join the healthcare providers using Nimbus OPD to save time, reduce costs, and deliver a better patient experience.</p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="/login" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-sky-700 bg-white rounded-xl hover:bg-slate-50 transition-all shadow-lg">
+              Get Started for Free
+            </a>
+            <a href="mailto:sales@nimbusopd.com" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white border border-sky-400 rounded-xl hover:bg-sky-700 transition-all">
+              Contact Sales
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER ────────────────────────────────────────────────── */}
+      <footer className="bg-slate-50 py-12 border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <HeartPulse className="h-6 w-6 text-sky-600" />
+            <span className="text-xl font-bold text-slate-900">Nimbus OPD</span>
+          </div>
+          <p className="text-sm text-slate-500">© {new Date().getFullYear()} Nimbus OPD. All rights reserved.</p>
+          <div className="flex gap-4 text-sm text-slate-500">
+            <a href="#" className="hover:text-sky-600">Privacy Policy</a>
+            <a href="#" className="hover:text-sky-600">Terms of Service</a>
           </div>
         </div>
       </footer>
-
-      {/* ─── REGISTRATION MODAL ─── */}
-      {showForm && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-slate-800">Register Clinic</h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
-            </div>
-            
-            {success ? (
-              <div className="text-center py-8">
-                <div className="text-6xl mb-4">⏳</div>
-                <h3 className="text-xl font-bold text-amber-600 mb-2">Registration Received</h3>
-                <p className="text-slate-600 mb-6 text-sm">
-                  Your clinic has been registered. However, your account is currently <b>pending approval and payment</b>. 
-                  Our platform team will review your application and contact you shortly.
-                </p>
-                <Link to="/login" className="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg hover:bg-slate-300 w-full inline-block font-medium transition">Back to Login</Link>
-              </div>
-            ) : (
-              <form onSubmit={onRegister} className="space-y-4">
-                {error && <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">{error}</div>}
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <label className="block text-sm">
-                    <span className="text-slate-600 font-medium">Clinic Name</span>
-                    <input name="clinic_name" required placeholder="City Health" className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none" />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="text-slate-600 font-medium">Short Code</span>
-                    <input name="clinic_code" required placeholder="city-health" className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none" />
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <label className="block text-sm">
-                    <span className="text-slate-600 font-medium">First Name</span>
-                    <input name="first_name" required placeholder="John" className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none" />
-                  </label>
-                  <label className="block text-sm">
-                    <span className="text-slate-600 font-medium">Last Name</span>
-                    <input name="last_name" required placeholder="Doe" className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none" />
-                  </label>
-                </div>
-
-                <label className="block text-sm">
-                  <span className="text-slate-600 font-medium">Admin Email</span>
-                  <input type="email" name="email" required placeholder="admin@cityhealth.com" className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none" />
-                </label>
-
-                <label className="block text-sm">
-                  <span className="text-slate-600 font-medium">Password</span>
-                  <input type="password" name="password" required minLength={6} className="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-sky-500 outline-none" />
-                </label>
-
-                <label className="flex items-start gap-2 text-sm text-slate-600 mt-2">
-                  <input type="checkbox" required className="mt-1 rounded border-slate-300 text-sky-600 focus:ring-sky-500" />
-                  <span>
-                    I agree to the <button type="button" onClick={() => setShowTerms(true)} className="text-sky-600 hover:underline font-medium">Terms & Conditions</button> and <button type="button" onClick={() => setShowPrivacy(true)} className="text-sky-600 hover:underline font-medium">Privacy Policy</button>.
-                  </span>
-                </label>
-
-                <button type="submit" disabled={busy} className="w-full bg-sky-600 text-white py-2.5 rounded-lg font-bold hover:bg-sky-700 disabled:opacity-50 mt-4 transition shadow-md">
-                  {busy ? "Creating Clinic..." : "Register Clinic"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ─── TERMS MODAL ─── */}
-      {showTerms && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
-              <h2 className="text-xl font-bold text-slate-800">Terms & Conditions</h2>
-              <button onClick={() => setShowTerms(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
-            </div>
-            <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4">
-              <h3 className="font-bold text-slate-800 text-base">1. Acceptance of Terms</h3>
-              <p>By registering for Nimbus OPD Cloud, you agree to these terms. If you are registering on behalf of a clinic, you represent that you have the authority to bind that clinic to these terms.</p>
-              <h3 className="font-bold text-slate-800 text-base">2. Subscription and Payment</h3>
-              <p>Access to the platform is granted upon approval and receipt of payment. Fees are billed monthly or annually in advance in Zambian Kwacha (ZMW). All fees are non-refundable except as required by law.</p>
-              <h3 className="font-bold text-slate-800 text-base">3. Data Protection and HIPAA</h3>
-              <p>You are solely responsible for obtaining patient consent and ensuring compliance with local health data regulations. Nimbus provides the technical safeguards (encryption, isolation) but does not act as a covered entity.</p>
-              <h3 className="font-bold text-slate-800 text-base">4. Limitation of Liability</h3>
-              <p>Nimbus Software Ltd. shall not be liable for any indirect, incidental, or consequential damages arising out of the use or inability to use the service.</p>
-            </div>
-            <div className="p-4 border-t bg-slate-50 rounded-b-2xl flex justify-end">
-              <button onClick={() => setShowTerms(false)} className="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300 transition">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── PRIVACY MODAL ─── */}
-      {showPrivacy && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center bg-slate-50 rounded-t-2xl">
-              <h2 className="text-xl font-bold text-slate-800">Privacy Policy</h2>
-              <button onClick={() => setShowPrivacy(false)} className="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
-            </div>
-            <div className="p-6 overflow-y-auto text-sm text-slate-600 space-y-4">
-              <h3 className="font-bold text-slate-800 text-base">1. Information We Collect</h3>
-              <p>We collect clinic details, admin user information, and patient data entered by your staff. We also collect usage logs for security and debugging.</p>
-              <h3 className="font-bold text-slate-800 text-base">2. How We Use Information</h3>
-              <p>Your data is used solely to provide the Nimbus OPD service. We do not sell your data or use it for advertising. Patient data is strictly isolated using PostgreSQL Row-Level Security.</p>
-              <h3 className="font-bold text-slate-800 text-base">3. Data Retention</h3>
-              <p>We retain your data for as long as your subscription is active. Upon cancellation, you may request a full export of your data.</p>
-            </div>
-            <div className="p-4 border-t bg-slate-50 rounded-b-2xl flex justify-end">
-              <button onClick={() => setShowPrivacy(false)} className="px-6 py-2 bg-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-300 transition">Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── HELPER COMPONENTS ───
-
-function FeatureCard({ icon, title, desc }: { icon: string, title: string, desc: string }) {
-  return (
-    <div className="bg-slate-50 p-8 rounded-2xl border border-slate-200 hover:shadow-lg transition duration-300 transform hover:-translate-y-1">
-      <div className="text-4xl mb-4">{icon}</div>
-      <h3 className="text-xl font-bold mb-2 text-slate-800">{title}</h3>
-      <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
-    </div>
-  );
-}
-
-function WorkflowStep({ num, title, desc }: { num: string, title: string, desc: string }) {
-  return (
-    <div className="relative text-center">
-      <div className="w-16 h-16 bg-sky-600 text-white rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 shadow-lg border-4 border-sky-200">
-        {num}
-      </div>
-      <h3 className="text-lg font-bold mb-2 text-slate-800">{title}</h3>
-      <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
-    </div>
-  );
-}
-
-function PriceCard({ name, price, period, annual, desc, features, highlighted = false }: any) {
-  return (
-    <div className={`border rounded-3xl p-8 flex flex-col ${highlighted ? 'border-sky-600 shadow-2xl relative bg-white transform md:-translate-y-4' : 'border-slate-200 bg-white'}`}>
-      {highlighted && <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-sky-600 text-white px-4 py-1 rounded-b-lg text-xs font-bold tracking-wide uppercase shadow-sm">Most Popular</div>}
-      <h3 className="text-xl font-bold text-slate-800 mb-2">{name}</h3>
-      <div className="text-4xl font-extrabold text-slate-900 mb-1">{price}<span className="text-lg text-slate-500 font-medium">{period}</span></div>
-      {annual && <div className="text-sm text-slate-500 mb-4 font-medium bg-slate-100 w-fit px-2 py-1 rounded">{annual}</div>}
-      <p className="text-slate-500 mb-6 text-sm flex-1">{desc}</p>
-      <ul className="space-y-3 mb-8 text-left text-sm">
-        {features.map((f: string) => (
-          <li key={f} className="flex items-center gap-2 text-slate-700">
-            <span className="text-emerald-500 font-bold">✓</span> {f}
-          </li>
-        ))}
-      </ul>
-      <button className={`w-full py-2.5 rounded-xl font-bold transition ${highlighted ? 'bg-sky-600 text-white hover:bg-sky-700 shadow-md' : 'border-2 border-slate-300 text-slate-700 hover:bg-slate-50'}`}>
-        Choose {name}
-      </button>
     </div>
   );
 }
