@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import UseCases from './pages/UseCases';
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
@@ -36,7 +37,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={<Login />} />
+      <Route path="/use-cases" element={<UseCases />} />
+        <Route path="/login" element={<Login />} />
       <Route path="/display" element={<WaitingRoom />} />
       <Route path="/portal" element={<PatientPortal />} />
       

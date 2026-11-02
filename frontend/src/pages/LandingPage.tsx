@@ -29,6 +29,7 @@ export default function LandingPage() {
             </div>
             
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+              <a href="/use-cases" className="hover:text-sky-600 transition font-bold text-sky-700">Use Cases</a>
               <button onClick={() => scrollTo("features")} className="hover:text-sky-600 transition">Features</button>
               <button onClick={() => scrollTo("integrations")} className="hover:text-sky-600 transition">Integrations</button>
               <button onClick={() => scrollTo("insurance")} className="hover:text-sky-600 transition">Insurance & NHIMA</button>
@@ -81,9 +82,9 @@ export default function LandingPage() {
               <a href="/login" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-white bg-sky-600 rounded-xl hover:bg-sky-700 shadow-lg shadow-sky-600/20 transition-all hover:-translate-y-0.5">
                 Start Free Trial <ArrowRight className="ml-2 h-5 w-5" />
               </a>
-              <button onClick={() => scrollTo("features")} className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-all">
-                Explore Features
-              </button>
+              <a href="/use-cases" className="inline-flex items-center justify-center px-8 py-3.5 text-base font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-all">
+                Explore Use Cases
+              </a>
             </div>
             <p className="mt-4 text-sm text-slate-500">No credit card required. 14-day free trial.</p>
           </div>
@@ -305,6 +306,7 @@ export default function LandingPage() {
           </div>
           <p className="text-sm text-slate-500">© {new Date().getFullYear()} Nimbus OPD. All rights reserved.</p>
           <div className="flex gap-4 text-sm text-slate-500">
+            <a href="/use-cases" className="hover:text-sky-600 font-medium text-slate-700">Use Cases</a>
             <a href="#" className="hover:text-sky-600">Privacy Policy</a>
             <a href="#" className="hover:text-sky-600">Terms of Service</a>
           </div>
