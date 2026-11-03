@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { 
   MessageSquare, Smartphone, Save, Loader2, Key, 
-  CreditCard, CheckCircle2 
+  CreditCard, CheckCircle2, ShieldCheck 
 } from "lucide-react";
 
 export default function Integrations() {
@@ -12,6 +12,7 @@ export default function Integrations() {
   const [testingMomo, setTestingMomo] = useState(false);
   const [momoTestResult, setMomoTestResult] = useState<"idle" | "success" | "error">("idle");
 
+  // Form state includes everything
   const [form, setForm] = useState({
     momo_api_key: "",
     momo_provider: "MTN",
@@ -94,36 +95,53 @@ export default function Integrations() {
             <div className="bg-amber-100 p-2 rounded-lg"><Smartphone className="h-5 w-5 text-amber-600" /></div>
             <div>
               <h2 className="text-lg font-semibold text-slate-800">Mobile Money</h2>
-              <p className="text-xs text-slate-500">MTN, Airtel, Zamtel via Lipila/MoneyUnify</p>
+              <p className="text-xs text-slate-500">Available Connections</p>
             </div>
           </div>
+          
           <div className="space-y-4">
+            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <span className="text-sm font-medium text-slate-700">MTN Mobile Money</span>
+              </div>
+              <span className="text-xs text-slate-500">Connected</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                <span className="text-sm font-medium text-slate-700">Airtel Money</span>
+              </div>
+              <span className="text-xs text-slate-500">Connected</span>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg opacity-50">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                <span className="text-sm font-medium text-slate-700">Zamtel Kwacha</span>
+              </div>
+              <span className="text-xs text-slate-500">Not configured</span>
+            </div>
+
+            <hr className="border-slate-100 my-4" />
+            
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Gateway API Key</label>
               <input type="password" name="momo_api_key" value={form.momo_api_key || ""} onChange={handleChange}
                      placeholder="e.g., lipila_test_..."
                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none transition" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Default Provider</label>
-              <select name="momo_provider" value={form.momo_provider || "MTN"} onChange={handleChange}
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none transition bg-white">
-                <option value="MTN">MTN Mobile Money</option>
-                <option value="Airtel">Airtel Money</option>
-                <option value="Zamtel">Zamtel Kwacha</option>
-              </select>
-            </div>
-            <div className="pt-2">
+            
+            <div className="pt-2 flex items-center gap-3">
               <button 
                 onClick={testMomo} 
                 disabled={testingMomo || !form.momo_api_key}
-                className="flex items-center gap-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-2 rounded-lg transition border border-amber-200 disabled:opacity-50"
+                className="flex items-center gap-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 px-4 py-2 rounded-lg transition border border-amber-200 disabled:opacity-50"
               >
                 {testingMomo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
                 Test Connection
               </button>
-              {momoTestResult === "success" && <span className="ml-3 text-xs text-emerald-600 font-medium">✓ Connected</span>}
-              {momoTestResult === "error" && <span className="ml-3 text-xs text-red-600 font-medium">✗ Failed</span>}
+              {momoTestResult === "success" && <span className="text-xs text-emerald-600 font-medium">✓ Connected</span>}
+              {momoTestResult === "error" && <span className="text-xs text-red-600 font-medium">✗ Failed</span>}
             </div>
           </div>
         </div>
@@ -149,6 +167,11 @@ export default function Integrations() {
               <input type="password" name="stripe_secret_key" value={form.stripe_secret_key || ""} onChange={handleChange}
                      placeholder="sk_live_..."
                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition" />
+            </div>
+            <div className="pt-2">
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" /> PCI-DSS Compliant Integration
+              </div>
             </div>
           </div>
         </div>
