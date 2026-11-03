@@ -4,21 +4,25 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-def send_sms(phone_number: str, message: str) -> bool:
-    """
-    Sends an SMS using Africa's Talking (or similar).
-    Requires AFRICASTALKING_API_KEY and AFRICASTALKING_USERNAME in settings.
-    """
-    api_key = getattr(settings, "AFRICASTALKING_API_KEY", "mock_key")
-    username = getattr(settings, "AFRICASTALKING_USERNAME", "sandbox")
+def get_tenant_config(tenant):
+    try:
+        return tenant.integration_settings
+    except Exception:
+        return None
+
+def send_sms(phone_number: str, message: str, tenant=None) -> bool:
+    config = get_tenant_config(tenant)
+    api_key = config.sms_api_key if config and config.sms_api_key else getattr(settings, "AFRICASTALKING_API_KEY", "mock_key")
+    sender_id = config.sms_sender_id if config and config.sms_sender_id else "NIMBUS"
     
-    if api_key == "mock_key":
+    if not api_key or api_key == "mock_key":
         logger.info(f"[MOCK SMS] To: {phone_number} | Msg: {message}")
         return True
 
+    # Africa's Talking API integration
     url = "https://api.africastalking.com/version1/messaging"
     headers = {"apiKey": api_key, "Accept": "application/json"}
-    payload = {"username": username, "to": phone_number, "message": message}
+    payload = {"username": "sandbox", "to": phone_number, "message": message, "from": sender_id}
     
     try:
         resp = requests.post(url, headers=headers, data=payload, timeout=10)
@@ -28,15 +32,12 @@ def send_sms(phone_number: str, message: str) -> bool:
         logger.error(f"SMS failed: {e}")
         return False
 
-def send_whatsapp(phone_number: str, message: str) -> bool:
-    """
-    Sends a WhatsApp message using Meta's Cloud API.
-    Requires WHATSAPP_TOKEN and WHATSAPP_PHONE_ID in settings.
-    """
-    token = getattr(settings, "WHATSAPP_TOKEN", "mock_token")
-    phone_id = getattr(settings, "WHATSAPP_PHONE_ID", "mock_id")
+def send_whatsapp(phone_number: str, message: str, tenant=None) -> bool:
+    config = get_tenant_config(tenant)
+    token = config.whatsapp_token if config and config.whatsapp_token else getattr(settings, "WHATSAPP_TOKEN", "mock_token")
+    phone_id = config.whatsapp_phone_id if config and config.whatsapp_phone_id else getattr(settings, "WHATSAPP_PHONE_ID", "mock_id")
 
-    if token == "mock_token":
+    if not token or token == "mock_token":
         logger.info(f"[MOCK WHATSAPP] To: {phone_number} | Msg: {message}")
         return True
 

@@ -342,3 +342,14 @@ class SmsConfig(models.Model):
             "api_key": bool(self.api_key),
             "api_secret": bool(self.api_secret),
         }
+
+
+class IntegrationSettings(models.Model):
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name="integration_settings")
+    sms_api_key = models.CharField(max_length=255, blank=True, help_text="Africa's Talking API Key")
+    sms_sender_id = models.CharField(max_length=50, blank=True, help_text="e.g., NIMBUS")
+    whatsapp_phone_id = models.CharField(max_length=255, blank=True, help_text="Meta WhatsApp Phone Number ID")
+    whatsapp_token = models.TextField(blank=True, help_text="Meta WhatsApp Permanent Token")
+
+    def __str__(self):
+        return f"Integrations for {self.tenant.name}"

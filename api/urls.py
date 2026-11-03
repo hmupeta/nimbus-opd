@@ -72,6 +72,7 @@ router.register("payment-gateway-configs", PaymentGatewayConfigViewSet, basename
 
 from api.auth_role import RoleView
 urlpatterns = [
+    path('integrations/', include('tenants.urls')),
     path("auth/role/", RoleView.as_view(), name="auth-role"),
     path('reports/trial-balance/', TrialBalanceView.as_view(), name='trial-balance'),
     path('reports/profit-loss/', ProfitLossView.as_view(), name='profit-loss'),

@@ -121,9 +121,9 @@ try:
         msg = generate_receipt_message(patient_name, amount, ref, clinic_name)
 
         if method == "sms":
-            success = send_sms(phone, msg)
+            success = send_sms(phone, msg, tenant=p.tenant)
         else:
-            success = send_whatsapp(phone, msg)
+            success = send_whatsapp(phone, msg, tenant=p.tenant)
 
         if success:
             return _notif_resp({"detail": f"Receipt sent via {method}."})

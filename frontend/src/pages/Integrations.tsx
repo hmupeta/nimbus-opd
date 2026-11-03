@@ -1,291 +1,103 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
-import type { Paginated } from "../api/types";
+import { MessageSquare, Smartphone, Save, Loader2, Key } from "lucide-react";
 
 export default function Integrations() {
   const qc = useQueryClient();
-  const [tab, setTab] = useState<"momo" | "gateway">("momo");
+  const [form, setForm] = useState({
+    sms_api_key: "",
+    sms_sender_id: "",
+    whatsapp_phone_id: "",
+    whatsapp_token: "",
+  });
+  const [saved, setSaved] = useState(false);
 
-  // --- MoMo State ---
-  const [editMomoId, setEditMomoId] = useState<number | null>(null);
-  const [momoApiUser, setMomoApiUser] = useState("");
-  const [momoApiKey, setMomoApiKey] = useState("");
-  const [momoProvider, setMomoProvider] = useState("mtn_momo");
-  const [momoEnv, setMomoEnv] = useState("sandbox");
-  const [momoMerchant, setMomoMerchant] = useState("");
-  const [momoCallback, setMomoCallback] = useState("");
-  const [momoSubKey, setMomoSubKey] = useState("");
-
-  // --- Gateway State ---
-  const [editGwId, setEditGwId] = useState<number | null>(null);
-  const [gwProvider, setGwProvider] = useState("stripe");
-  const [gwEnv, setGwEnv] = useState("sandbox");
-  const [gwPubKey, setGwPubKey] = useState("");
-
-  const momoConfigs = useQuery({
-    queryKey: ["momo-configs"],
-    queryFn: async () => (await api.get<Paginated<any>>("/mobile-money-configs/")).data.results,
+  const { data, isLoading } = useQuery({
+    queryKey: ["integration-settings"],
+    queryFn: async () => (await api.get("/integrations/settings/")).data,
   });
 
-  const gatewayConfigs = useQuery({
-    queryKey: ["gateway-configs"],
-    queryFn: async () => (await api.get<Paginated<any>>("/payment-gateway-configs/")).data.results,
-  });
+  useEffect(() => {
+    if (data) setForm(data);
+  }, [data]);
 
-  // ── Mutations ──
-  const saveMomo = useMutation({
-    mutationFn: async (payload: any) => {
-      if (editMomoId) {
-        return await api.patch(`/mobile-money-configs/${editMomoId}/`, payload);
-      }
-      return await api.post("/mobile-money-configs/", payload);
-    },
+  const save = useMutation({
+    mutationFn: async () => (await api.put("/integrations/settings/", form)).data,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["momo-configs"] });
-      resetMomoForm();
-    },
-    onError: (err: any) => {
-      alert("Failed to save: " + (err.response?.data?.detail || JSON.stringify(err.response?.data) || err.message));
-    }
-  });
-
-  const saveGateway = useMutation({
-    mutationFn: async (payload: any) => {
-      if (editGwId) {
-        return await api.patch(`/payment-gateway-configs/${editGwId}/`, payload);
-      }
-      return await api.post("/payment-gateway-configs/", payload);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["gateway-configs"] });
-      resetGwForm();
+      qc.invalidateQueries({ queryKey: ["integration-settings"] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     },
   });
 
-  const generateApiUser = useMutation({
-    mutationFn: async (payload: { provider: string, callback_host: string, subscription_key: string }) => {
-      const { data } = await api.post("/mobile-money-configs/create-api-user/", payload);
-      return data;
-    },
-    onSuccess: (data) => {
-      setMomoApiUser(data.api_user);
-      setMomoApiKey(data.api_key);
-      alert(data.message);
-    },
-    onError: (err: any) => {
-      const msg = err.response?.data?.detail || err.message;
-      alert("Failed to generate API User from MTN: \n\n" + msg);
-    }
-  });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
-  const testConnection = useMutation({
-    mutationFn: async ({ id, type }: { id: number, type: "momo" | "gateway" }) => {
-      const endpoint = type === "momo" ? `/mobile-money-configs/${id}/test-connection/` : `/payment-gateway-configs/${id}/test-connection/`;
-      return await api.post(endpoint);
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["momo-configs"] });
-      qc.invalidateQueries({ queryKey: ["gateway-configs"] });
-    }
-  });
-
-  // ── Handlers ──
-  function resetMomoForm() {
-    setEditMomoId(null);
-    setMomoProvider("mtn_momo");
-    setMomoEnv("sandbox");
-    setMomoMerchant("");
-    setMomoCallback("");
-    setMomoApiUser("");
-    setMomoApiKey("");
-    setMomoSubKey("");
-  }
-
-  function editMomo(c: any) {
-    setEditMomoId(c.id);
-    setMomoProvider(c.provider);
-    setMomoEnv(c.environment);
-    setMomoMerchant(c.merchant_code);
-    setMomoCallback(c.callback_host || "");
-    setMomoApiUser(c.api_user || "");
-    setMomoApiKey(""); // Always blank on edit for security
-    setMomoSubKey(""); // Always blank on edit
-  }
-
-  function submitMomo(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const payload: any = {
-      provider: momoProvider,
-      environment: momoEnv,
-      merchant_code: momoMerchant,
-      callback_host: momoCallback,
-      is_active: true,
-    };
-    if (momoApiUser) payload.api_user = momoApiUser;
-    if (momoApiKey) payload.api_key = momoApiKey;
-    
-    const secret = fd.get("api_secret");
-    if (secret) payload.api_secret = secret;
-    
-    if (momoSubKey) payload.subscription_key = momoSubKey;
-    
-    saveMomo.mutate(payload);
-  }
-
-  function resetGwForm() {
-    setEditGwId(null);
-    setGwProvider("stripe");
-    setGwEnv("sandbox");
-    setGwPubKey("");
-  }
-
-  function editGw(c: any) {
-    setEditGwId(c.id);
-    setGwProvider(c.provider);
-    setGwEnv(c.environment);
-    setGwPubKey(c.publishable_key || "");
-  }
-
-  function submitGw(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const payload: any = {
-      provider: gwProvider,
-      environment: gwEnv,
-      publishable_key: gwPubKey,
-      is_active: true,
-    };
-    const secret = fd.get("secret_key");
-    if (secret) payload.secret_key = secret;
-    
-    saveGateway.mutate(payload);
-  }
+  if (isLoading) return <div className="p-8">Loading settings...</div>;
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Payment Integrations</h1>
-          <p className="text-sm text-slate-500 mt-1">Configure MoMo and Card gateways.</p>
-        </div>
+    <div className="max-w-4xl space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-slate-800">Integrations & API Keys</h1>
+        <p className="text-sm text-slate-500 mt-1">Manage your SMS and WhatsApp communication settings for this clinic.</p>
       </div>
 
-      <div className="flex gap-4 border-b">
-        <button onClick={() => setTab("momo")} className={`pb-2 px-1 font-medium ${tab === "momo" ? "border-b-2 border-sky-600 text-sky-700" : "text-slate-500"}`}>Mobile Money</button>
-        <button onClick={() => setTab("gateway")} className={`pb-2 px-1 font-medium ${tab === "gateway" ? "border-b-2 border-sky-600 text-sky-700" : "text-slate-500"}`}>Card Gateways (Stripe/PayPal)</button>
-      </div>
-
-      {tab === "momo" && (
-        <div className="space-y-6">
-          <form onSubmit={submitMomo} className="bg-white border rounded-xl p-6 shadow-sm space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="font-bold text-lg">{editMomoId ? "Edit" : "Add"} Mobile Money Config</h2>
-              {editMomoId && <button type="button" onClick={resetMomoForm} className="text-xs text-slate-500 hover:text-slate-700">Cancel Edit</button>}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* SMS Settings */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-sky-100 p-2 rounded-lg"><Smartphone className="h-5 w-5 text-sky-600" /></div>
+            <h2 className="text-lg font-semibold text-slate-800">SMS Settings (Africa's Talking)</h2>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">API Key</label>
+              <input type="password" name="sms_api_key" value={form.sms_api_key || ""} onChange={handleChange}
+                     placeholder="atsk_..."
+                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none transition" />
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <label className="text-sm"><span className="text-slate-600">Provider</span>
-                <select value={momoProvider} onChange={e => setMomoProvider(e.target.value)} required className="mt-1 w-full border rounded-lg px-3 py-2">
-                  <option value="mtn_momo">MTN MoMo</option>
-                  <option value="airtel_money">Airtel Money</option>
-                  <option value="zamtel_kwacha">Zamtel Kwacha</option>
-                </select>
-              </label>
-              <label className="text-sm"><span className="text-slate-600">Environment</span>
-                <select value={momoEnv} onChange={e => setMomoEnv(e.target.value)} required className="mt-1 w-full border rounded-lg px-3 py-2">
-                  <option value="sandbox">Sandbox</option>
-                  <option value="production">Production</option>
-                </select>
-              </label>
-              
-              <label className="text-sm"><span className="text-slate-600">Merchant Code</span><input value={momoMerchant} onChange={e => setMomoMerchant(e.target.value)} required className="mt-1 w-full border rounded-lg px-3 py-2" /></label>
-              <label className="text-sm"><span className="text-slate-600">Callback Host URL</span><input value={momoCallback} onChange={e => setMomoCallback(e.target.value)} required className="mt-1 w-full border rounded-lg px-3 py-2" /></label>
-              
-              <div className="col-span-2 border-t my-2"></div>
-              <div className="col-span-2 flex justify-between items-end">
-                <div className="text-sm font-semibold text-slate-700">API Credentials</div>
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    const subKey = momoSubKey || prompt("Please enter the Subscription Key from the MTN Portal:");
-                    if (!subKey) return;
-                    generateApiUser.mutate({ provider: momoProvider, callback_host: momoCallback, subscription_key: subKey });
-                  }}
-                  disabled={generateApiUser.isPending || !momoCallback}
-                  className="text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded border border-indigo-200 hover:bg-indigo-100 font-medium disabled:opacity-50"
-                >
-                  ⚡ Generate API User
-                </button>
-              </div>
-              
-              <label className="text-sm"><span className="text-slate-600">API User</span>
-                <input value={momoApiUser} readOnly className="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500" placeholder="Click Generate above" />
-              </label>
-              <label className="text-sm"><span className="text-slate-600">API Key</span>
-                <input 
-                  value={momoApiKey} 
-                  readOnly 
-                  className="mt-1 w-full border rounded-lg px-3 py-2 bg-slate-50 text-slate-500 font-mono text-xs" 
-                  placeholder={editMomoId ? "(Leave blank to keep current)" : "Click Generate above"} 
-                />
-              </label>
-              <label className="text-sm"><span className="text-red-500 font-medium">API Secret {!editMomoId && "*"}</span><input name="api_secret" required={!editMomoId} className="mt-1 w-full border rounded-lg px-3 py-2" placeholder={editMomoId ? "(Leave blank to keep current)" : ""} /></label>
-              <label className="text-sm"><span className="text-red-500 font-medium">Subscription Key {!editMomoId && "*"}</span><input value={momoSubKey} onChange={e => setMomoSubKey(e.target.value)} required={!editMomoId} className="mt-1 w-full border rounded-lg px-3 py-2" placeholder={editMomoId ? "(Leave blank to keep current)" : "Ocp-Apim-Subscription-Key from MTN Portal"} /></label>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Sender ID / Shortcode</label>
+              <input type="text" name="sms_sender_id" value={form.sms_sender_id || ""} onChange={handleChange}
+                     placeholder="e.g., NIMBUS"
+                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500 outline-none transition" />
             </div>
-            
-            <button type="submit" disabled={saveMomo.isPending} className="bg-sky-600 text-white px-4 py-2 rounded-lg hover:bg-sky-700 mt-4">
-              {saveMomo.isPending ? "Saving..." : (editMomoId ? "Update Config" : "Save Config")}
-            </button>
-          </form>
-          
-          <div className="bg-white border rounded-lg overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b text-slate-600">
-                <tr>
-                  <th className="text-left px-4 py-3">Provider</th>
-                  <th className="text-left px-4 py-3">Env</th>
-                  <th className="text-left px-4 py-3">Merchant</th>
-                  <th className="text-left px-4 py-3">Status</th>
-                  <th className="text-right px-4 py-3">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {momoConfigs.data?.map((c: any) => (
-                  <tr key={c.id} className={`hover:bg-slate-50 ${editMomoId === c.id ? "bg-sky-50" : ""}`}>
-                    <td className="px-4 py-3 font-medium capitalize">{c.provider.replace("_", " ")}</td>
-                    <td className="px-4 py-3 capitalize">{c.environment}</td>
-                    <td className="px-4 py-3">{c.merchant_code}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span className={`font-bold text-xs ${c.last_verification_status === 'ok' ? 'text-emerald-600' : c.last_verification_status === 'failed' ? 'text-red-500' : 'text-slate-400'}`}>
-                          {c.last_verification_status === 'ok' ? '✓ Verified' : c.last_verification_status === 'failed' ? '✗ Failed' : 'Not tested'}
-                        </span>
-                        {c.last_verification_status === 'failed' && (
-                          <span className="text-[10px] text-red-500 max-w-[200px] leading-tight">{c.last_verification_message}</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      <button onClick={() => editMomo(c)} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded font-medium">Edit</button>
-                      <button 
-                        onClick={() => testConnection.mutate({ id: c.id, type: "momo" })} 
-                        disabled={testConnection.isPending}
-                        className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded font-medium"
-                      >
-                        {testConnection.isPending && testConnection.variables?.id === c.id ? "Testing..." : "Test"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
         </div>
-      )}
 
-      {/* Gateway Tab remains the same... */}
+        {/* WhatsApp Settings */}
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-emerald-100 p-2 rounded-lg"><MessageSquare className="h-5 w-5 text-emerald-600" /></div>
+            <h2 className="text-lg font-semibold text-slate-800">WhatsApp Settings (Meta Cloud API)</h2>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number ID</label>
+              <input type="text" name="whatsapp_phone_id" value={form.whatsapp_phone_id || ""} onChange={handleChange}
+                     placeholder="e.g., 1045..."
+                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Permanent Access Token</label>
+              <input type="password" name="whatsapp_token" value={form.whatsapp_token || ""} onChange={handleChange}
+                     placeholder="EAAL..."
+                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 pt-4">
+        <button onClick={() => save.mutate()} disabled={save.isPending}
+                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-lg font-medium transition disabled:opacity-50">
+          {save.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
+          Save Settings
+        </button>
+        {saved && <span className="text-emerald-600 text-sm font-medium flex items-center gap-1"><Key className="h-4 w-4"/> Settings saved securely.</span>}
+      </div>
     </div>
   );
 }
