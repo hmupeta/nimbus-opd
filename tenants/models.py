@@ -350,6 +350,11 @@ class IntegrationSettings(models.Model):
     sms_sender_id = models.CharField(max_length=50, blank=True, help_text="e.g., NIMBUS")
     whatsapp_phone_id = models.CharField(max_length=255, blank=True, help_text="Meta WhatsApp Phone Number ID")
     whatsapp_token = models.TextField(blank=True, help_text="Meta WhatsApp Permanent Token")
+    # Payment Gateways
+    momo_api_key = models.CharField(max_length=255, blank=True, help_text="Lipila/MoneyUnify API Key")
+    momo_provider = models.CharField(max_length=50, blank=True, default="MTN", help_text="MTN, Airtel, etc.")
+    stripe_public_key = models.CharField(max_length=255, blank=True)
+    stripe_secret_key = models.CharField(max_length=255, blank=True)
 
     def __str__(self):
         return f"Integrations for {self.tenant.name}"
