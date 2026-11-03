@@ -99,8 +99,7 @@ export default function Layout() {
             <>
               <SectionTitle title="Administration" />
               <NavItem to="/staff" icon={UserCog} label="Staff" roles={["admin"]} />
-
-          <MessageSquare to="/communication-settings" icon={MessageSquare} label="Communication" roles={["admin"]} />
+              <NavItem to="/communication-settings" icon={MessageSquare} label="Communication" roles={["admin"]} />
               <NavItem to="/lab-catalog" icon={TestTube} label="Lab Catalog" roles={["admin"]} />
               <NavItem to="/radiology-catalog" icon={ScanLine} label="Radiology Catalog" roles={["admin"]} />
               <NavItem to="/pharmacy-catalog" icon={Pill} label="Pharmacy Catalog" roles={["admin"]} />
