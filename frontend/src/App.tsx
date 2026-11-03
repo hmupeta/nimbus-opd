@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import CommunicationSettings from './pages/CommunicationSettings';
 import UseCases from './pages/UseCases';
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -64,7 +65,8 @@ export default function App() {
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/fixed-assets" element={<FixedAssets />} />
           <Route path="/accounts-payable" element={<AccountsPayable />} />
-          <Route path="/integrations" element={<Integrations />} />
+          <Route path="/communication-settings" element={<CommunicationSettings />} />
+        <Route path="/integrations" element={<Integrations />} />
           
           <Route path="/audit" element={<AuditTrail />} />
           <Route path="/reports" element={<MISReports />} />
