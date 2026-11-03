@@ -87,3 +87,52 @@ except Exception as _e:
     import logging
     logging.getLogger(__name__).warning(
         f"[approval-workflow] patch failed: {_e}")
+
+
+
+# === notifications patch ===
+try:
+    from rest_framework.decorators import action as _notif_action
+    from rest_framework.response import Response as _notif_resp
+    from api.notifications import send_sms, send_whatsapp, generate_receipt_message
+
+    def _send_receipt(self, request, pk=None):
+        p = self.get_object()
+        method = request.data.get("method", "whatsapp") # 'sms' or 'whatsapp'
+        
+        # Try to get patient phone. Adjust based on your actual model structure.
+        phone = getattr(p, "patient_phone", None)
+        if not phone and hasattr(p, "patient") and p.patient:
+            phone = getattr(p.patient, "phone", None)
+            
+        if not phone:
+            return _notif_resp({"detail": "No phone number found for this patient."}, status=400)
+
+        # Clean phone number (remove spaces, ensure country code)
+        phone = str(phone).replace(" ", "")
+        if phone.startswith("0"):
+            phone = "+260" + phone[1:] # Assuming Zambia +260
+
+        clinic_name = getattr(p.tenant, "name", "the clinic") if hasattr(p, "tenant") else "the clinic"
+        patient_name = getattr(p.patient, "full_name", "Patient") if hasattr(p, "patient") else "Patient"
+        amount = str(p.amount)
+        ref = getattr(p, "reference", f"PAY-{p.id}")
+
+        msg = generate_receipt_message(patient_name, amount, ref, clinic_name)
+
+        if method == "sms":
+            success = send_sms(phone, msg)
+        else:
+            success = send_whatsapp(phone, msg)
+
+        if success:
+            return _notif_resp({"detail": f"Receipt sent via {method}."})
+        else:
+            return _notif_resp({"detail": "Failed to send message. Check server logs."}, status=500)
+
+    if "PaymentViewSet" in globals():
+        PaymentViewSet.send_receipt = _notif_action(detail=True, methods=["post"])(_send_receipt)
+        print("[notifications] send-receipt action registered.")
+except Exception as e:
+    import logging
+    logging.getLogger(__name__).warning(f"[notifications] patch failed: {e}")

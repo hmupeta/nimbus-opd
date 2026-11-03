@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { NotificationButtons } from "../components/NotificationButtons";
 import type { Paginated } from "../api/types";
 
 export default function Payments() {
@@ -37,6 +38,7 @@ export default function Payments() {
               <th className="text-left px-4 py-3">Amount</th>
               <th className="text-left px-4 py-3">Method</th>
               <th className="text-left px-4 py-3">Reference</th>
+                <th className="text-center px-4 py-3">Notify</th>
               <th className="text-left px-4 py-3">Received By</th>
             </tr>
           </thead>
