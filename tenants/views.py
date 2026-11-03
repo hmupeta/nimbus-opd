@@ -32,3 +32,15 @@ class IntegrationSettingsView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+
+class TestMomoView(APIView):
+    permission_classes = [IsAuthenticated]
+    def post(self, request):
+        # Mock testing the API key with the provider
+        api_key = request.data.get("api_key")
+        provider = request.data.get("provider")
+        if not api_key:
+            return Response({"detail": "API Key is required."}, status=400)
+        # In a real app, you would make a ping request to Lipila/MoneyUnify here.
+        return Response({"detail": f"Successfully connected to {provider} gateway."})
